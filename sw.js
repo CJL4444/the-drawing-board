@@ -1,11 +1,1 @@
-const CACHE = 'tdb-v1';
-const ASSETS = ['/'];
-self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
-self.addEventListener('fetch', e => {
-  if (e.request.url.includes('thecocktaildb') || e.request.url.includes('fonts.g')) return;
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-    const clone = res.clone();
-    caches.open(CACHE).then(c => c.put(e.request, clone));
-    return res;
-  })));
-});
+const CACHE='tdb-v2';const ASSETS=['/'];self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));self.addEventListener('fetch',e=>{if(e.request.url.includes('thecocktaildb')||e.request.url.includes('fonts.g'))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const clone=res.clone();caches.open(CACHE).then(c=>c.put(e.request,clone));return res;})));});
