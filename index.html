@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>The Drawing Board</title>
+  <meta name="theme-color" content="#0e0c09" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet" />
+  <style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0e0c09;--parchment:#f5f0e8;--chalk:#e8e0cc;
+  --amber:#c8860a;--amber-light:#e8a820;--amber-dim:#8a5a06;
+  --slate:#151210;--slate-mid:#201c18;--slate-light:#2e2820;
+  --cream:#d4c8a8;--muted:#7a6a50;
+  --tile-radius:10px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Mono',monospace;background:var(--slate);color:var(--cream);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.025;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size:300px 300px}
+.shell{position:relative;z-index:1;max-width:520px;margin:0 auto;padding-bottom:90px}
+
+/* ── HEADER / LOGO ── */
+.header{background:var(--ink);border-bottom:1px solid var(--slate-light);cursor:pointer;user-select:none}
+.logo-wrap{padding:14px 24px 10px;display:flex;align-items:center;justify-content:center}
+.logo-img{width:100%;max-width:340px;height:auto;display:block;filter:contrast(1.08) brightness(1.04)}
+.subtitle{display:none}
+
+/* ── NAV — 3 items ── */
+.nav{display:grid;grid-template-columns:auto 1fr 1fr 1fr;background:var(--ink);border-bottom:2px solid var(--slate-light);position:sticky;top:0;z-index:50}
+.nb{background:transparent;border:none;border-bottom:3px solid transparent;color:#b8a98a;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;font-style:italic;letter-spacing:.12em;text-transform:uppercase;padding:16px 4px 13px;cursor:pointer;transition:all .18s;text-align:center}
+.nb:hover{color:#e8dcc8}
+.nb.on{color:#f0e8d8;border-bottom-color:var(--amber);font-weight:600;font-style:italic}
+
+/* ── CONTENT ── */
+.content{padding:20px 14px}
+
+/* ── BADGES ── */
+.badge{display:inline-block;font-size:14px;font-family:'DM Mono',monospace;font-weight:300;letter-spacing:.06em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.b-ready{background:rgba(45,100,45,.35);color:#8dcc8d;border:1px solid rgba(100,180,100,.2)}
+.b-miss{background:rgba(139,32,32,.3);color:#e88;border:1px solid rgba(180,60,60,.2)}
+.b-imp{background:rgba(200,134,10,.15);color:var(--amber);border:1px solid var(--amber-dim)}
+.b-tag{background:rgba(255,255,255,.04);color:#b8a98a;border:1px solid var(--slate-light)}
+
+/* ── CARD ── */
+.card{background:var(--slate-mid);border:1px solid var(--slate-light);border-radius:var(--tile-radius);overflow:hidden;margin-bottom:14px;transition:border-color .2s,transform .15s}
+.card:active{transform:scale(.99)}
+.card-hdr{display:flex;align-items:center;padding:16px 14px;cursor:pointer;gap:12px;user-select:none;min-height:72px}
+.card-emoji{font-size:1.9rem;flex-shrink:0;width:52px;height:52px;background:rgba(200,134,10,.07);border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(200,134,10,.12)}
+.card-info{flex:1;min-width:0}
+.card-name{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:400;color:var(--parchment);line-height:1.2;margin-bottom:5px}
+.card-tags{display:flex;gap:5px;flex-wrap:wrap}
+.card-meta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.fav{background:none;border:none;cursor:pointer;font-size:1.5rem;opacity:.3;transition:opacity .18s,transform .15s;line-height:1;padding:4px;color:var(--amber)}
+.fav:hover{opacity:.7}
+.fav.on{opacity:1;transform:scale(1.1)}
+.edit-btn{background:none;border:none;cursor:pointer;opacity:.25;color:#b8a98a;padding:3px;transition:opacity .15s;line-height:1;display:flex;align-items:center}
+.edit-btn:hover{opacity:.8;color:var(--amber)}
+.chev{color:#b8a98a;font-size:.7rem;transition:transform .2s;display:inline-block}
+.chev.open{transform:rotate(90deg)}
+.card-body{padding:0 16px 20px;border-top:1px solid var(--slate-light)}
+.hero{width:100%;height:80px;display:flex;align-items:center;justify-content:center;font-size:3rem;margin-bottom:14px;padding-top:14px}
+.lbl{font-size:14px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);font-weight:400;margin:16px 0 6px;font-family:'DM Mono',monospace}
+.flavor{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.2rem;font-weight:300;color:var(--chalk);line-height:1.65}
+.ings{list-style:none}
+.ings li{font-size:.93rem;font-weight:300;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:10px;min-height:44px}
+.ings li.have{color:var(--cream)}
+.ings li.need{color:#b8a98a;opacity:.75}
+.chk{font-size:1.05rem;flex-shrink:0;width:14px}
+.add-btn{background:none;border:1px solid var(--slate-light);border-radius:16px;color:#b8a98a;font-family:'DM Mono',monospace;font-size:14px;font-weight:300;padding:4px 10px;cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap}
+.add-btn:hover{border-color:var(--amber-dim);color:var(--amber)}
+.add-btn.in-cart{background:rgba(200,134,10,.12);border-color:var(--amber);color:var(--amber-light)}
+.listed{font-size:14px;color:var(--amber);flex-shrink:0}
+.instr{font-family:'DM Mono',monospace;font-size:1.23rem;font-weight:300;color:var(--cream);line-height:1.9;opacity:.9}
+.note{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.05rem;font-weight:300;color:#d4a44a;line-height:1.6;border-left:2px solid var(--amber-dim);padding-left:14px}
+
+/* ── BUTTONS ── */
+.btn{background:var(--amber);color:var(--ink);border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:14px 20px;border-radius:8px;cursor:pointer;transition:background .18s;flex-shrink:0}
+.btn:hover{background:var(--amber-light)}
+.btn:disabled{opacity:.5;cursor:default}
+.ghost{background:transparent;border:1px solid var(--slate-light);color:#b8a98a}
+.ghost:hover{border-color:var(--amber-dim);color:var(--cream);background:transparent}
+.sm{padding:9px 14px;font-size:15px}
+
+/* ── SECTION TITLE ── */
+.sec{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:400;color:var(--parchment);margin-bottom:18px;display:flex;align-items:baseline;gap:12px}
+.cnt{font-family:'DM Mono',monospace;font-size:1rem;font-weight:300;color:var(--amber)}
+
+/* ── SEARCH INPUT ── */
+.swrap{position:relative;margin-bottom:16px}
+.sinput{width:100%;background:var(--slate-mid);border:1px solid var(--slate-light);color:var(--parchment);font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:400;padding:16px 44px 16px 18px;border-radius:8px;outline:none;transition:border-color .18s;-webkit-appearance:none}
+.sinput:focus{border-color:var(--amber)}
+.sinput::placeholder{color:var(--muted);font-style:italic}
+.sclr{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:#b8a98a;cursor:pointer;font-size:.9rem;padding:4px}
+.ftabs{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap}
+
+/* ── FORM INPUTS ── */
+.arow{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.ainput,.csel{background:var(--slate-mid);border:1px solid var(--slate-light);color:var(--parchment);font-family:'DM Mono',monospace;font-size:1.23rem;font-weight:300;padding:13px 14px;border-radius:8px;outline:none;transition:border-color .18s;-webkit-appearance:none}
+.ainput{flex:1;min-width:130px}
+.ainput:focus,.csel:focus{border-color:var(--amber)}
+.csel{cursor:pointer}
+textarea.ainput{resize:vertical}
+
+/* ── INVENTORY ── */
+.icat{margin-bottom:24px}
+.icattitle{font-size:14px;letter-spacing:.25em;text-transform:uppercase;color:var(--amber);font-weight:300;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--slate-light)}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:6px}
+.iitem{border-radius:8px;padding:12px 12px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:all .15s;border:1px solid transparent;min-height:50px}
+.iitem.owned{background:rgba(200,134,10,.09);border-color:rgba(200,134,10,.3)}
+.iitem.owned:hover{background:rgba(200,134,10,.15)}
+.iitem.unowned{background:var(--slate-mid);border-color:var(--slate-light)}
+.iitem.unowned:hover{border-color:var(--amber-dim)}
+.ichk{width:20px;height:20px;border-radius:4px;border:1px solid var(--slate-light);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .15s}
+.ichk.on{background:var(--amber);border-color:var(--amber);color:var(--ink);font-weight:700}
+.iname{font-family:'DM Mono',monospace;font-size:1.12rem;font-weight:300;color:var(--cream);flex:1;line-height:1.3}
+.iitem.unowned .iname{color:#b8a98a}
+.cartbtn{background:none;border:none;cursor:pointer;font-size:1.2rem;font-weight:200;padding:2px 6px;color:#b8a98a;transition:all .18s;flex-shrink:0;font-family:'DM Mono',monospace;line-height:1;opacity:.6}
+.cartbtn:hover{color:var(--amber);opacity:1}
+.cartbtn.in-cart{color:var(--amber-light);opacity:1;font-size:1rem}
+
+/* ── CART STICKY BUTTON + PANEL ── */
+.cart-fab{position:fixed!important;bottom:28px;right:20px;z-index:9999;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;transition:background .22s,box-shadow .22s;background:var(--amber);box-shadow:0 4px 20px rgba(200,134,10,.4);display:flex;align-items:center;justify-content:center;font-size:1.4rem;line-height:54px}
+.cart-fab-badge{position:absolute;top:-4px;right:-4px;background:var(--ink);color:var(--amber);border-radius:10px;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;line-height:1;padding:2px 6px;min-width:18px;text-align:center;border:1px solid var(--amber-dim);pointer-events:none}
+
+/* ── SHOPPING PANEL (sheet) ── */
+.sitem{background:var(--slate-mid);border:1px solid var(--slate-light);border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color .15s;margin-bottom:10px;min-height:58px}
+.sitem:hover{border-color:var(--amber-dim)}
+.sname{font-family:'DM Mono',monospace;font-size:1.28rem;font-weight:300;color:var(--cream);flex:1}
+
+/* ── MODAL / SHEET ── */
+.overlay{position:fixed;inset:0;background:rgba(10,8,6,.88);z-index:100;display:flex;align-items:flex-end;backdrop-filter:blur(6px);animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.mpanel{background:var(--slate);border-top:2px solid var(--amber-dim);width:100%;max-width:520px;margin:0 auto;max-height:88vh;display:flex;flex-direction:column;border-radius:16px 16px 0 0;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhdr{padding:20px 20px 16px;border-bottom:1px solid var(--slate-light);position:relative;flex-shrink:0}
+.meyebrow{font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:var(--amber);font-weight:300;margin-bottom:4px}
+.mtitle{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:400;color:var(--parchment)}
+.mclose{position:absolute;top:16px;right:16px;background:var(--slate-light);border:none;color:var(--cream);font-size:.9rem;cursor:pointer;padding:6px 10px;border-radius:6px}
+.mclose:hover{background:var(--amber-dim);color:var(--parchment)}
+.mbody{overflow-y:auto;padding:18px 20px 36px;overscroll-behavior:contain}
+
+/* ── IDEAS / DISCOVER ── */
+.disc-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:0}
+.disc-tile{background:var(--slate-mid);border:1px solid var(--slate-light);border-radius:10px;padding:22px 16px;cursor:pointer;transition:all .2s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.disc-tile:hover{border-color:var(--amber-dim);background:rgba(200,134,10,.06)}
+.disc-tile.open{border-color:var(--amber);background:rgba(200,134,10,.08)}
+.disc-tile-icon{font-size:2rem;line-height:1}
+.disc-tile-label{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:400;color:var(--parchment)}
+.disc-tile-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem;font-weight:300;color:#b8a882;line-height:1.4}
+.disc-panel{margin-top:14px;animation:fadeIn .2s ease}
+.psec{margin-bottom:20px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;margin-top:8px}
+.chip{padding:11px 10px;border:1px solid var(--slate-light);border-radius:8px;font-size:1.1rem;font-weight:300;font-family:'DM Mono',monospace;cursor:pointer;text-align:center;color:#b8a98a;transition:all .15s;background:var(--slate-mid);line-height:1.4}
+.chip:hover{color:var(--cream);border-color:var(--amber-dim)}
+.chip.on{background:rgba(200,134,10,.14);border-color:var(--amber);color:var(--amber-light)}
+.rpanel{background:var(--slate-mid);border:1px solid var(--amber-dim);border-radius:10px;padding:20px;margin-top:4px}
+.rtitle{font-size:14px;letter-spacing:.3em;text-transform:uppercase;font-weight:300;color:var(--amber);margin-bottom:16px}
+.ritem{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--slate-light)}
+.ritem:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.rname{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:400;color:var(--parchment);margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rreason{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1rem;font-weight:300;color:#b8a98a;margin-bottom:8px}
+.acqbox{margin-top:16px;padding:16px;background:rgba(200,134,10,.07);border-left:3px solid var(--amber-dim);border-radius:0 6px 6px 0}
+.acqtitle{font-size:14px;letter-spacing:.3em;text-transform:uppercase;font-weight:300;color:var(--amber);margin-bottom:6px}
+.acqname{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:400;color:var(--parchment);margin-bottom:3px}
+.acqsub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem;font-weight:300;color:#b8a98a}
+
+/* ── HOME ── */
+.home{min-height:55vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 16px 28px}
+.orn{font-size:2rem;margin-bottom:20px;animation:float 3.5s ease-in-out infinite;letter-spacing:.15em;display:flex;gap:4px;justify-content:center}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.hhead{font-family:'Playfair Display',serif;font-size:clamp(2rem,7vw,2.8rem);font-weight:400;color:var(--parchment);margin-bottom:10px;font-style:italic;line-height:1.1}
+.hsub{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:300;color:#b8a98a;margin-bottom:36px;max-width:300px;line-height:1.75}
+.hactions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px}
+.hbtn{background:var(--slate-mid);border:1px solid var(--slate-light);color:var(--chalk);font-family:'DM Mono',monospace;font-size:1.02rem;font-weight:300;letter-spacing:.08em;text-transform:uppercase;padding:18px 20px;border-radius:8px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:16px;min-height:56px}
+.hbtn:hover{background:rgba(200,134,10,.1);border-color:var(--amber-dim);color:var(--parchment)}
+.hbtn-icon{font-size:1.3rem;flex-shrink:0;width:28px;text-align:center}
+.hstats{margin-top:28px;font-size:1.15rem;font-weight:300;color:#b8a98a;letter-spacing:.06em;line-height:2.2}
+
+/* ── MISC ── */
+.dots{display:inline-flex;gap:4px;align-items:center}
+.dots span{width:5px;height:5px;background:var(--amber);border-radius:50%;animation:pulse 1.2s ease-in-out infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes pulse{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.empty{text-align:center;padding:48px 16px;color:#b8a98a;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.1rem;font-weight:300}
+.muted-txt{font-size:1.15rem;font-weight:300;color:#b8a98a;margin-bottom:16px;line-height:1.7}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel for JSX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
+
+  <script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+
+// ─── CATALOG ──────────────────────────────────────────────────────────────────
+const CATALOG = {
+  "Primary Spirits": ["Vodka","Gin","Rum (White)","Rum (Dark)","Rum (Aged)","Bourbon","Rye Whiskey","Whiskey","Scotch","Irish Whiskey","Tequila (Blanco)","Tequila (Reposado)","Tequila (Añejo)","Mezcal","Brandy","Cognac","Pisco"],
+  "Specialty Liqueurs": ["Campari","Aperol","Triple Sec","Cointreau","Grand Marnier","Amaretto","Kahlúa","Baileys Irish Cream","Chambord","St-Germain Elderflower","Crème de Cacao (Dark)","Crème de Cacao (White)","Banana Liqueur","Blackberry Brandy","Maraschino Liqueur","Chartreuse (Green)","Midori","Frangelico","Peach Schnapps","Blue Curaçao","Drambuie","Licor 43","Apricot Brandy","Apple Brandy","Crème de Menthe"],
+  "Vermouths & Fortified": ["Sweet Vermouth","Dry Vermouth","Blanc Vermouth","Lillet Blanc","Amaro (Montenegro)","Cynar","Fernet-Branca"],
+  "Mixers & Juices": ["Club Soda","Tonic Water","Ginger Beer","Ginger Ale","Cola","Lemon-Lime Soda","Grapefruit Soda","Simple Syrup","Honey Syrup","Grenadine","Orgeat","Agave Nectar","Cinnamon Syrup","Lime Juice","Lemon Juice","Orange Juice","Grapefruit Juice","Cranberry Juice","Pineapple Juice","Coconut Cream","Coconut Water","Heavy Cream","Half & Half","Egg White","Whole Egg","Espresso","Cold Brew Coffee","Tomato Juice","Worcestershire Sauce","Hot Sauce","Horseradish","Pickle Juice"],
+  "Bitters & Syrups": ["Angostura Bitters","Orange Bitters","Peychaud's Bitters","Black Walnut Bitters","Cherry Vanilla Bark Bitters","Mole Bitters","Celery Bitters","Maple Syrup","Vanilla Syrup","Lavender Syrup","Demerara Syrup"],
+  "Garnishes & Accents": ["Tajín","Salt","Sugar","Black Pepper","Maraschino Cherries","Cocktail Olives","Cocktail Onions","Lime Wedges","Lemon Twist","Orange Peel","Grapefruit Twist","Mint","Rosemary","Basil","Cucumber","Jalapeño","Celery","Nutmeg","Vanilla Extract"],
+};
+
+// ─── YOUR CONFIRMED INVENTORY ─────────────────────────────────────────────────
+const DEFAULT_OWNED = [
+  "Vodka","Gin","Tequila (Blanco)","Rum (White)","Rum (Dark)","Whiskey","Bourbon","Scotch","Irish Whiskey",
+  "Kahlúa","Licor 43","Baileys Irish Cream","Amaretto","St-Germain Elderflower","Triple Sec","Apricot Brandy",
+  "Blackberry Brandy","Apple Brandy","Peach Schnapps","Banana Liqueur","Crème de Menthe","Crème de Cacao (Dark)",
+  "Campari","Aperol","Sweet Vermouth","Dry Vermouth",
+  "Angostura Bitters","Orange Bitters","Black Walnut Bitters","Cherry Vanilla Bark Bitters","Vanilla Extract",
+];
+
+// ─── COCKTAIL DATABASE ────────────────────────────────────────────────────────
+const DB = [
+  // WHISKEY
+  {id:1,name:"Old Fashioned",emoji:"🥃",base:"whiskey",tags:["spirit-forward","sweet","warming","classic"],ings:["Bourbon","Angostura Bitters","Simple Syrup"],parts:["2 shots Bourbon","2 dashes Angostura Bitters","¼ shot Simple Syrup"],method:"Add bitters and syrup to a rocks glass. Add bourbon and stir. Add a large ice cube and stir another 20 seconds. Express an orange peel over the top.",flavor:"Warm, caramel-rich, subtly spiced with a clean whiskey backbone.",note:"Rye makes this drier and spicier. Don't muddle a cherry — that's a Wisconsin Old Fashioned and it still splits the room."},
+  {id:2,name:"Manhattan",emoji:"🍒",base:"whiskey",tags:["spirit-forward","herbal","sweet","classic","warming"],ings:["Rye Whiskey","Sweet Vermouth","Angostura Bitters"],parts:["2 shots Rye Whiskey","1 shot Sweet Vermouth","2 dashes Angostura Bitters"],method:"Stir all ingredients with ice for 30 seconds. Strain into a chilled coupe or rocks glass. Cherry garnish.",flavor:"Rich, herbal, spirit-forward with a sweet cherry finish.",note:"Bourbon makes it sweeter. Rye keeps it sharp. The vermouth ratio is the variable — adjust to preference."},
+  {id:3,name:"Whiskey Sour",emoji:"🍋",base:"whiskey",tags:["citrus","tart","sweet","classic","refreshing"],ings:["Bourbon","Lemon Juice","Simple Syrup","Angostura Bitters"],parts:["2 shots Bourbon","¾ shot Lemon Juice","¾ shot Simple Syrup","2 dashes Angostura Bitters"],method:"Optional: dry shake with egg white first for foam. Add ice, shake hard. Strain over ice in a rocks glass. Dash bitters on top.",flavor:"Bright citrus, balanced sweetness, warm whiskey backbone.",note:"Egg white optional but transforms the texture. Bitters on top aren't decoration — they add aromatics every sip."},
+  {id:4,name:"Gold Rush",emoji:"🍯",base:"whiskey",tags:["citrus","sweet","tart","warming","rich"],ings:["Bourbon","Lemon Juice","Honey Syrup"],parts:["2 shots Bourbon","¾ shot Lemon Juice","¾ shot Honey Syrup"],method:"Make honey syrup: 2 parts honey dissolved in 1 part warm water. Shake all ingredients hard with ice. Double strain into a rocks glass over a large cube.",flavor:"Bright citrus, rich honey sweetness, warm bourbon backbone — rounder and more luxurious than a Whiskey Sour.",note:"Honey syrup gives silkiness that simple syrup can't. Make a batch — keeps two weeks refrigerated."},
+  {id:5,name:"Paper Plane",emoji:"✈️",base:"whiskey",tags:["bitter","citrus","complex","tart","spirit-forward"],ings:["Bourbon","Aperol","Lemon Juice","Sweet Vermouth"],parts:["1 shot Bourbon","1 shot Aperol","1 shot Lemon Juice","1 shot Sweet Vermouth"],method:"Equal parts everything. Shake hard with ice. Double strain into a chilled coupe.",flavor:"Bitter, citrus, nutty, and whiskey-bright all at once.",note:"Equal parts is the entire philosophy. Make it exactly as written before adjusting."},
+  {id:6,name:"Boulevardier",emoji:"🍊",base:"whiskey",tags:["bitter","spirit-forward","warming","herbal","rich"],ings:["Bourbon","Sweet Vermouth","Campari"],parts:["1½ shots Bourbon","¾ shot Sweet Vermouth","¾ shot Campari"],method:"Stir with ice until well chilled. Strain over large cube. Express orange peel.",flavor:"Warm, rich, bittersweet — a Negroni with a Southern accent.",note:"If you love Negronis, this is the next logical step. Bourbon softens the bitterness."},
+  {id:65,name:"Corey's Twist Boulevardier",emoji:"🍊",base:"whiskey",tags:["bitter","spirit-forward","warming","herbal","citrus","complex"],ings:["Bourbon","Sweet Vermouth","Campari","Triple Sec","Orange Bitters"],parts:["1½ shots Bourbon","¾ shot Sweet Vermouth","½ shot Campari","¼ shot Triple Sec","1 dash Orange Bitters"],method:"Stir with ice until well chilled. Strain over large cube. Orange twist garnish.",flavor:"Classic Boulevardier brightened by Triple Sec and orange bitters — more citrus, less bitter.",note:"The Triple Sec softens the Campari edge and adds citrus brightness the original lacks. A house variation."},
+  {id:7,name:"Rob Roy",emoji:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",base:"whiskey",tags:["smoky","herbal","spirit-forward","classic","dry"],ings:["Scotch","Sweet Vermouth","Angostura Bitters"],parts:["2 shots Scotch","1 shot Sweet Vermouth","2 dashes Angostura Bitters"],method:"Stir with ice until well chilled. Strain into a chilled coupe. Cherry garnish.",flavor:"Smoky, herbal, slightly sweet with a dry finish.",note:"A Manhattan made with Scotch. Use dry vermouth for a Dry Rob Roy."},
+  {id:57,name:"Godfather",emoji:"🤌",base:"whiskey",tags:["sweet","smoky","warming","spirit-forward","simple"],ings:["Scotch","Amaretto"],parts:["2 shots Scotch","1 shot Amaretto"],method:"Stir over ice in a rocks glass.",flavor:"Smoky Scotch softened by sweet almond amaretto — simple, bold, and elegant.",note:"Adjust ratio to taste. More Amaretto = sweeter. More Scotch = drier and smokier. Both are correct."},
+  {id:10,name:"Penicillin",emoji:"💊",base:"whiskey",tags:["smoky","citrus","spicy","complex","herbal"],ings:["Scotch","Lemon Juice","Honey Syrup","Ginger Beer"],parts:["2 shots Scotch","¾ shot Lemon Juice","¾ shot Honey Syrup","splash Ginger Beer"],method:"Shake Scotch, lemon, and honey syrup with ice. Strain into a rocks glass over ice. Add a small splash of ginger beer. Candied ginger garnish.",flavor:"Smoky, sweet honey, bright lemon, warm ginger.",note:"One of the great modern classics. The smoke from the Scotch makes this unforgettable."},
+  {id:8,name:"Mint Julep",emoji:"🌿",base:"whiskey",tags:["refreshing","sweet","herbal","light","classic"],ings:["Bourbon","Simple Syrup","Mint"],parts:["2½ shots Bourbon","½ shot Simple Syrup","8–10 Mint leaves"],method:"Gently muddle mint with syrup in a julep cup or rocks glass. Fill with crushed ice. Add bourbon. Stir. Top with more crushed ice. Pack fresh mint on top.",flavor:"Cool mint, sweet, bourbon warmth — refreshing in a way that sneaks up on you.",note:"Crushed ice is mandatory. The mint is aromatics — you smell it more than taste it."},
+  {id:9,name:"Sazerac",emoji:"🟡",base:"whiskey",tags:["spirit-forward","herbal","classic","dry","complex"],ings:["Rye Whiskey","Simple Syrup","Peychaud's Bitters","Angostura Bitters"],parts:["2 shots Rye Whiskey","¼ shot Simple Syrup","3 dashes Peychaud's Bitters","1 dash Angostura Bitters"],method:"Rinse a chilled rocks glass with absinthe if you have it. Stir remaining ingredients with ice. Strain into the rinsed glass — no ice. Express lemon peel over top, discard.",flavor:"Rye spice, floral Peychaud's bitterness, hint of anise.",note:"New Orleans' native cocktail. No ice in the final glass. Peychaud's is the soul of this drink — worth having."},
+  {id:69,name:"Cinnamon Coconut Old Fashioned",emoji:"🥥",base:"whiskey",tags:["sweet","warming","tropical","spiced","spirit-forward","rich"],ings:["Bourbon","Cinnamon Syrup","Coconut Water","Orange Bitters"],parts:["2 shots Bourbon","½ shot Cinnamon Syrup","splash Coconut Water","2 dashes Orange Bitters"],method:"Stir over ice in a rocks glass. Add a large cube. Express orange peel over the top.",flavor:"Bourbon warmth, cinnamon spice, subtle coconut sweetness, citrus aromatics.",note:"A house original Old Fashioned riff. The coconut water adds a subtle tropical note without being obvious about it."},
+  // GIN
+  {id:11,name:"Negroni",emoji:"🍊",base:"gin",tags:["bitter","herbal","citrus","spirit-forward","classic"],ings:["Gin","Sweet Vermouth","Campari"],parts:["1 shot Gin","1 shot Sweet Vermouth","1 shot Campari"],method:"Stir all ingredients with ice for 30 seconds. Strain into a rocks glass over a large cube. Express an orange peel.",flavor:"Bitter, herbal, citrus-forward with a bittersweet complexity.",note:"Equal parts is the philosophy. Go 1½ shots gin if Campari feels too aggressive."},
+  {id:68,name:"Aperol Negroni",emoji:"🧡",base:"gin",tags:["bitter","herbal","citrus","light","approachable"],ings:["Gin","Sweet Vermouth","Aperol"],parts:["1 shot Gin","1 shot Sweet Vermouth","1 shot Aperol"],method:"Stir over ice. Strain over large cube. Orange peel garnish.",flavor:"Lighter and more citrus-forward than a classic Negroni — same structure, softer bitterness.",note:"Aperol swapped for Campari makes this more approachable. A great gateway Negroni."},
+  {id:15,name:"Martini",emoji:"🍸",base:"gin",tags:["spirit-forward","dry","herbal","classic","elegant"],ings:["Gin","Dry Vermouth"],parts:["2½ shots Gin","½ shot Dry Vermouth"],method:"Stir with ice for 45 seconds. Strain into a chilled martini glass. Lemon twist or olive garnish.",flavor:"Crisp, botanical, cold, and ruthlessly clean.",note:"Stir don't shake — shaking clouds the drink. The vermouth ratio defines it."},
+  {id:67,name:"Golden Martinez",emoji:"✨",base:"gin",tags:["sweet","herbal","citrus","elegant","complex","spirit-forward"],ings:["Gin","Licor 43","Dry Vermouth","Orange Bitters"],parts:["1½ shots Gin","1 shot Licor 43","½ shot Dry Vermouth","2 dashes Orange Bitters"],method:"Stir with ice until well chilled. Strain into a coupe. Express and use orange peel as garnish.",flavor:"Botanical gin, vanilla-citrus Licor 43, herbal vermouth — rich, layered, and aromatic.",note:"A house original Martinez riff. Licor 43 replaces maraschino and transforms the whole drink."},
+  {id:12,name:"Gimlet",emoji:"🍃",base:"gin",tags:["citrus","tart","light","herbal","refreshing"],ings:["Gin","Lime Juice","Simple Syrup"],parts:["2 shots Gin","¾ shot Lime Juice","¾ shot Simple Syrup"],method:"Shake with ice. Strain into a chilled coupe. Express a lime peel and discard.",flavor:"Clean, tart lime, botanical gin forward.",note:"Classic calls for Rose's Lime Cordial. Fresh lime + simple syrup is better."},
+  {id:13,name:"Gin & Tonic",emoji:"🌿",base:"gin",tags:["bitter","herbal","bubbly","light","refreshing","simple"],ings:["Gin","Tonic Water"],parts:["2 shots Gin","3–4 shots Tonic Water"],method:"Fill a highball or copa glass with ice. Add gin. Top with tonic. Stir once gently. Lime and cucumber or herb garnish.",flavor:"Botanical, bitter quinine, clean and refreshing.",note:"Tonic quality is half the drink. Fever-Tree changes the equation."},
+  {id:18,name:"French 75",emoji:"🥂",base:"gin",tags:["citrus","bubbly","light","elegant","classic"],ings:["Gin","Lemon Juice","Simple Syrup","Club Soda"],parts:["1½ shots Gin","¾ shot Lemon Juice","½ shot Simple Syrup","3 shots Club Soda"],method:"Shake gin, lemon, syrup with ice. Strain into a champagne flute. Top with club soda or Champagne. Lemon twist garnish.",flavor:"Bright lemon, floral gin, effervescent and celebratory.",note:"Named after a WWI artillery gun. Club soda makes this everyday-accessible."},
+  {id:14,name:"Tom Collins",emoji:"🍋",base:"gin",tags:["citrus","bubbly","light","tart","refreshing","classic"],ings:["Gin","Lemon Juice","Simple Syrup","Club Soda"],parts:["2 shots Gin","1 shot Lemon Juice","½ shot Simple Syrup","2–3 shots Club Soda"],method:"Shake gin, lemon, and syrup with ice. Strain into a highball over ice. Top with club soda. Cherry and orange garnish.",flavor:"Bright lemon, effervescent, clean and refreshing.",note:"The original long drink. Simple, honest, endlessly drinkable."},
+  {id:19,name:"Bee's Knees",emoji:"🐝",base:"gin",tags:["citrus","sweet","herbal","light","refreshing","classic"],ings:["Gin","Lemon Juice","Honey Syrup"],parts:["2 shots Gin","¾ shot Lemon Juice","¾ shot Honey Syrup"],method:"Shake with ice. Double strain into a chilled coupe. Lemon twist garnish.",flavor:"Honey sweetness, bright lemon, botanical gin — perfectly balanced.",note:"Prohibition-era classic. The honey masked bathtub gin. Works better with good gin."},
+  {id:17,name:"Bramble",emoji:"🫐",base:"gin",tags:["fruity","tart","citrus","herbal","sweet"],ings:["Gin","Lemon Juice","Simple Syrup","Blackberry Brandy"],parts:["2 shots Gin","¾ shot Lemon Juice","½ shot Simple Syrup","½ shot Blackberry Brandy (float)"],method:"Shake gin, lemon, syrup with ice. Strain into crushed-ice-filled rocks glass. Drizzle blackberry brandy slowly on top.",flavor:"Bright citrus, floral gin, dark berry sweetness in layers.",note:"The float creates a gradient that bleeds through as you drink. Don't rush it."},
+  {id:55,name:"Blackberry Collins",emoji:"🫐",base:"gin",tags:["fruity","citrus","bubbly","light","refreshing"],ings:["Gin","Lemon Juice","Simple Syrup","Blackberry Brandy","Club Soda"],parts:["2 shots Gin","¾ shot Lemon Juice","½ shot Simple Syrup","½ shot Blackberry Brandy","2 shots Club Soda"],method:"Shake gin, lemon, syrup, and blackberry brandy with ice. Strain into a highball over ice. Top with club soda. Berry garnish.",flavor:"Bright lemon, berry sweetness, botanical gin, effervescent.",note:"A Tom Collins dressed for a night out. The blackberry brandy transforms the whole drink."},
+  // VODKA
+  {id:25,name:"Vodka Martini",emoji:"🍸",base:"vodka",tags:["spirit-forward","dry","clean","classic","elegant"],ings:["Vodka","Dry Vermouth"],parts:["2½ shots Vodka","½ shot Dry Vermouth"],method:"Stir or shake with ice. Strain into a chilled martini glass. Lemon twist or olive.",flavor:"Cold, clean, crisp. The absence of flavor done right.",note:"Shaking is acceptable for vodka, unlike gin. Dirty? Add a splash of olive brine."},
+  {id:71,name:"Pickle Martini",emoji:"🥒",base:"vodka",tags:["savory","briny","dry","bold","spirit-forward"],ings:["Vodka","Pickle Juice","Dry Vermouth"],parts:["2 shots Vodka","½ shot Pickle Juice","Dry Vermouth rinse"],method:"Rinse a chilled martini glass with dry vermouth and discard. Shake vodka and pickle juice with ice. Strain into the rinsed glass. Pickle spear garnish.",flavor:"Clean vodka, brine, dry vermouth aromatics — savory and uncompromising.",note:"Midwest pickle chaos. This is not for everyone. It is absolutely for someone. That someone knows who they are."},
+  {id:21,name:"Cosmopolitan",emoji:"🌸",base:"vodka",tags:["citrus","fruity","tart","light","approachable"],ings:["Vodka","Triple Sec","Cranberry Juice","Lime Juice"],parts:["1½ shots Vodka","¾ shot Triple Sec","1 shot Cranberry Juice","½ shot Lime Juice"],method:"Shake well. Strain into chilled martini glass. Lime zest garnish.",flavor:"Tart citrus, light cranberry, clean and balanced.",note:"Unfairly stigmatized. A well-balanced cocktail. Make it properly."},
+  {id:20,name:"Moscow Mule",emoji:"🫚",base:"vodka",tags:["spicy","citrus","light","bubbly","refreshing"],ings:["Vodka","Ginger Beer","Lime Juice"],parts:["2 shots Vodka","3 shots Ginger Beer","½ shot Lime Juice"],method:"Fill a copper mug or highball with crushed ice. Add vodka and lime. Top with ginger beer. Stir gently.",flavor:"Crisp, spicy ginger, bright citrus with a clean vodka base.",note:"Ginger beer quality changes everything. Fever-Tree or Reed's."},
+  {id:22,name:"Espresso Martini",emoji:"☕",base:"vodka",tags:["coffee","sweet","rich","dessert"],ings:["Vodka","Kahlúa","Simple Syrup","Espresso"],parts:["1½ shots Vodka","¾ shot Kahlúa","½ shot Simple Syrup","1 shot Espresso (cooled)"],method:"Shake all ingredients very hard with ice — vigorous shaking creates the foam. Double strain into a chilled martini glass. Three coffee beans garnish.",flavor:"Bold coffee, sweet, slightly bitter finish with a silky foam head.",note:"Fresh espresso is mandatory. The foam only happens with a hard shake."},
+  {id:23,name:"Black Russian",emoji:"🖤",base:"vodka",tags:["coffee","sweet","simple","spirit-forward"],ings:["Vodka","Kahlúa"],parts:["2 shots Vodka","1 shot Kahlúa"],method:"Fill a rocks glass with ice. Add vodka, then Kahlúa. Stir briefly.",flavor:"Clean spirit, coffee sweetness — direct and unfussy.",note:"Add Baileys → White Russian. Add cola → Colorado Bulldog."},
+  {id:24,name:"White Russian",emoji:"🥛",base:"vodka",tags:["coffee","creamy","sweet","rich","dessert"],ings:["Vodka","Kahlúa","Baileys Irish Cream"],parts:["1½ shots Vodka","¾ shot Kahlúa","¾ shot Baileys Irish Cream"],method:"Build over ice in a rocks glass. Light stir.",flavor:"Creamy, coffee-rich, sweet with a clean vodka foundation.",note:"Using Baileys instead of cream gives a richer, more complex result. The Dude would approve."},
+  {id:27,name:"Sex on the Beach",emoji:"🏖️",base:"vodka",tags:["fruity","sweet","tropical","light","approachable"],ings:["Vodka","Peach Schnapps","Orange Juice","Cranberry Juice"],parts:["1½ shots Vodka","½ shot Peach Schnapps","2 shots Orange Juice","2 shots Cranberry Juice"],method:"Build in a highball over ice. Stir gently. Orange slice and cherry garnish.",flavor:"Sweet, fruity, peachy — a crowd-pleaser in the best sense.",note:"Not trying to be sophisticated. Succeeds completely at what it is."},
+  {id:26,name:"Bloody Mary",emoji:"🍅",base:"vodka",tags:["savory","spicy","complex","brunch","bold"],ings:["Vodka","Tomato Juice","Lemon Juice","Worcestershire Sauce","Hot Sauce","Horseradish","Salt","Black Pepper","Celery"],parts:["2 shots Vodka","4 shots Tomato Juice","½ shot Lemon Juice","3 dashes Worcestershire Sauce","3 dashes Hot Sauce","1 tsp Horseradish","pinch Salt and Black Pepper"],method:"Combine all ingredients and roll between shaker and glass rather than shake. Pour over ice. Celery stalk and garnish heavily.",flavor:"Savory, spicy, rich tomato with a briny backbone.",note:"The Bloody Mary is a philosophy. Adjust every element until it's yours."},
+  // TEQUILA
+  {id:28,name:"Margarita",emoji:"🍋",base:"tequila",tags:["citrus","tart","classic","refreshing","balanced"],ings:["Tequila (Blanco)","Triple Sec","Lime Juice","Salt"],parts:["2 shots Tequila (Blanco)","1 shot Triple Sec","1 shot Lime Juice"],method:"Salt rim optional. Shake all ingredients with ice. Strain over fresh ice or up in a coupe. Lime wheel garnish.",flavor:"Bright citrus, agave backbone, clean and balanced.",note:"The ratio is everything: 2:1:1. Fresh lime is non-negotiable. Cointreau > cheap triple sec."},
+  {id:29,name:"Spicy Margarita",emoji:"🌶️",base:"tequila",tags:["spicy","citrus","tart","complex","refreshing"],ings:["Tequila (Blanco)","Triple Sec","Lime Juice","Simple Syrup","Tajín","Jalapeño"],parts:["2 shots Tequila (Blanco)","1 shot Triple Sec","¾ shot Lime Juice","¼ shot Simple Syrup"],method:"Muddle 2–3 jalapeño slices. Add remaining ingredients and ice. Shake hard. Fine strain into a Tajín-rimmed rocks glass over ice.",flavor:"Bright citrus, agave depth, building heat, salty complexity.",note:"The Tajín rim is an active ingredient. Adjust jalapeño for heat preference."},
+  {id:62,name:"Toreador",emoji:"🦅",base:"tequila",tags:["citrus","fruity","tart","light","elegant"],ings:["Tequila (Blanco)","Apricot Brandy","Lime Juice"],parts:["2 shots Tequila (Blanco)","¾ shot Apricot Brandy","¾ shot Lime Juice"],method:"Shake with ice. Strain into a coupe.",flavor:"Agave brightness, sweet apricot, tart lime — clean and elegant.",note:"Apricot brandy is the surprise ingredient that makes this sing."},
+  {id:34,name:"Naked & Famous",emoji:"⚡",base:"tequila",tags:["bitter","citrus","complex","bold","smoky"],ings:["Tequila (Reposado)","Aperol","Amaretto","Lemon Juice"],parts:["¾ shot Tequila (Reposado)","¾ shot Aperol","¾ shot Amaretto","¾ shot Lemon Juice"],method:"Equal parts everything. Shake with ice. Double strain into a chilled coupe.",flavor:"Smoky agave, bitter orange, nutty almond, bright lemon — wildly complex.",note:"Paper Plane's tequila cousin. Same equal-parts principle, totally different personality."},
+  {id:51,name:"Tequila Negroni",emoji:"🌵",base:"tequila",tags:["bitter","herbal","citrus","spirit-forward","complex"],ings:["Tequila (Blanco)","Sweet Vermouth","Campari"],parts:["1 shot Tequila (Blanco)","1 shot Sweet Vermouth","1 shot Campari"],method:"Stir all ingredients with ice. Strain into a rocks glass over a large cube. Orange peel garnish.",flavor:"Agave brightness through the bitter-herbal Negroni framework — surprising and excellent.",note:"Also called the Agavoni. The tequila's vegetal quality adds a dimension gin can't."},
+  {id:30,name:"Paloma",emoji:"🩷",base:"tequila",tags:["citrus","bubbly","light","refreshing","tart","grapefruit"],ings:["Tequila (Blanco)","Lime Juice","Simple Syrup","Grapefruit Soda","Salt"],parts:["2 shots Tequila (Blanco)","½ shot Lime Juice","¼ shot Simple Syrup","3 shots Grapefruit Soda"],method:"Salt rim a highball. Add ice, tequila, lime, syrup. Top with grapefruit soda. Stir gently.",flavor:"Grapefruit-forward, tart, lightly sweet, effervescent.",note:"Mexico's most popular cocktail. Jarritos grapefruit soda is the traditional choice."},
+  {id:31,name:"Aperol Paloma",emoji:"🧡",base:"tequila",tags:["bitter","citrus","grapefruit","bubbly","refreshing"],ings:["Tequila (Blanco)","Aperol","Lime Juice","Grapefruit Juice","Simple Syrup","Club Soda"],parts:["2 shots Tequila (Blanco)","1 shot Aperol","½ shot Lime Juice","½ shot Grapefruit Juice","¼ shot Simple Syrup","2 shots Club Soda"],method:"Tajín-salt rim. Shake tequila, Aperol, lime, grapefruit, syrup with ice. Strain over fresh ice. Top with club soda.",flavor:"Bittersweet orange, tart grapefruit, agave backbone, lightly spiced rim.",note:"Aperol bridges tequila and grapefruit beautifully."},
+  {id:32,name:"Tequila Sunrise",emoji:"🌅",base:"tequila",tags:["fruity","sweet","light","citrus","approachable"],ings:["Tequila (Blanco)","Orange Juice","Grenadine"],parts:["2 shots Tequila (Blanco)","4 shots Orange Juice","½ shot Grenadine"],method:"Add tequila and OJ to a highball over ice. Slowly pour grenadine down the side. Do not stir.",flavor:"Orange-forward, sweet, tropical, visually dramatic.",note:"The gradient is the whole point. Pour grenadine slowly. Don't stir."},
+  // RUM
+  {id:35,name:"Daiquiri",emoji:"🍋",base:"rum",tags:["citrus","tart","light","classic","refreshing"],ings:["Rum (White)","Lime Juice","Simple Syrup"],parts:["2 shots Rum (White)","¾ shot Lime Juice","¾ shot Simple Syrup"],method:"Shake vigorously with ice. Double strain into a chilled coupe.",flavor:"Bright, tart, clean citrus with subtle sweetness.",note:"The perfect litmus test for bartender skill. Three ingredients, infinite precision."},
+  {id:36,name:"Mojito",emoji:"🌿",base:"rum",tags:["herbal","citrus","bubbly","refreshing","light","classic"],ings:["Rum (White)","Lime Juice","Simple Syrup","Mint","Club Soda"],parts:["2 shots Rum (White)","1 shot Lime Juice","½ shot Simple Syrup","8–10 Mint leaves","2 shots Club Soda"],method:"Gently muddle mint with syrup and lime in a highball. Add rum and ice. Top with club soda. Stir from the bottom. Mint sprig garnish.",flavor:"Fresh mint, bright lime, light rum — impossibly refreshing.",note:"Don't over-muddle the mint or it turns bitter. Gentle press, not a pound."},
+  {id:37,name:"Dark & Stormy",emoji:"⛈️",base:"rum",tags:["spicy","tropical","rich","bubbly"],ings:["Rum (Dark)","Ginger Beer","Lime Juice"],parts:["2 shots Rum (Dark)","3 shots Ginger Beer","½ shot Lime Juice"],method:"Fill a highball with ice. Add lime and ginger beer. Float dark rum on top over the back of a spoon.",flavor:"Molasses-rich rum, sharp ginger, tropical tartness.",note:"The float keeps rum on top for the first sip. Don't stir."},
+  {id:38,name:"Piña Colada",emoji:"🍍",base:"rum",tags:["tropical","creamy","sweet","fruity"],ings:["Rum (White)","Coconut Cream","Pineapple Juice"],parts:["2 shots Rum (White)","1 shot Coconut Cream","2 shots Pineapple Juice"],method:"Blend all ingredients with a cup of ice until smooth. Pour into a tall glass. Pineapple wedge and cherry garnish. Or shake if no blender.",flavor:"Rich coconut, sweet pineapple, tropical and creamy.",note:"Blended is the correct form. Shaken is still good."},
+  {id:39,name:"Jungle Bird",emoji:"🦜",base:"rum",tags:["tropical","bitter","complex","sweet","tart"],ings:["Rum (Dark)","Campari","Pineapple Juice","Lime Juice","Simple Syrup"],parts:["1½ shots Rum (Dark)","¾ shot Campari","1½ shots Pineapple Juice","½ shot Lime Juice","½ shot Simple Syrup"],method:"Shake all ingredients with ice. Strain into a rocks glass over ice. Pineapple wedge garnish.",flavor:"Tropical, bitter, sweet-tart with dark rum depth.",note:"Campari in a tiki drink sounds wrong. It tastes completely right."},
+  {id:58,name:"Mai Tai",emoji:"🌺",base:"rum",tags:["tropical","citrus","sweet","tiki","complex"],ings:["Rum (White)","Rum (Dark)","Lime Juice","Triple Sec","Grenadine"],parts:["1 shot Rum (White)","1 shot Rum (Dark)","1 shot Lime Juice","½ shot Triple Sec","½ shot Grenadine"],method:"Shake all ingredients with ice. Strain over fresh ice in a rocks or tiki glass. Lime wedge and cherry garnish.",flavor:"Tropical citrus, layered rum depth, lightly sweet with a bright finish.",note:"The split rum is the move — white gives brightness, dark gives depth."},
+  {id:63,name:"Aruba Ariba",emoji:"🏝️",base:"rum",tags:["tropical","fruity","sweet","citrus","light","approachable"],ings:["Rum (White)","Rum (Dark)","Banana Liqueur","Triple Sec","Orange Juice","Grenadine"],parts:["1 shot Rum (White)","1 shot Rum (Dark)","½ shot Banana Liqueur","½ shot Triple Sec","2 shots Orange Juice","splash Grenadine"],method:"Shake all ingredients with ice. Pour over fresh ice in a tall glass. Fruit garnish.",flavor:"Tropical, fruity, layered rum with citrus brightness and a hint of banana.",note:"The house tropical build. Every ingredient pulls its weight."},
+  {id:66,name:"Dirty Banana",emoji:"🍌",base:"rum",tags:["tropical","creamy","sweet","coffee","dessert","rich"],ings:["Rum (Dark)","Banana Liqueur","Kahlúa","Coconut Cream"],parts:["1½ shots Rum (Dark)","1 shot Banana Liqueur","1 shot Kahlúa","1 shot Coconut Cream"],method:"Shake or blend with ice. Serve chilled in a rocks glass.",flavor:"Banana, coconut, coffee — tropical dessert in a glass.",note:"Shake for a cocktail. Blend for a frozen version. Both are correct. Both are dangerous."},
+  {id:40,name:"Banana Daiquiri",emoji:"🍌",base:"rum",tags:["tropical","sweet","fruity","citrus","light"],ings:["Rum (White)","Banana Liqueur","Lime Juice"],parts:["1½ shots Rum (White)","1 shot Banana Liqueur","½ shot Lime Juice"],method:"Shake hard with ice. Strain into a chilled coupe. Small lime wheel garnish.",flavor:"Tropical, fruity, bright with citrus balance.",note:"Sounds like a pool drink. Tastes surprisingly sophisticated."},
+  {id:61,name:"Tradewind",emoji:"🌬️",base:"rum",tags:["tropical","creamy","citrus","tiki","complex","light"],ings:["Rum (White)","Rum (Dark)","Coconut Cream","Apricot Brandy","Lemon Juice"],parts:["1 shot Rum (White)","1 shot Rum (Dark)","1 shot Coconut Cream","½ shot Apricot Brandy","½ shot Lemon Juice"],method:"Shake with ice. Strain into a coupe.",flavor:"Tropical coconut, bright apricot, lemon tartness, layered rum depth.",note:"The apricot brandy is what sets this apart from other tiki builds. Don't skip it."},
+  {id:72,name:"Rum Flip",emoji:"🥚",base:"rum",tags:["rich","creamy","sweet","warming","dessert","complex"],ings:["Rum (Dark)","Whole Egg","Simple Syrup"],parts:["1½ shots Rum (Dark)","1 Whole Egg","¾ shot Simple Syrup"],method:"Dry shake all ingredients vigorously without ice first. Add ice and shake again hard. Strain into a chilled coupe or rocks glass. Freshly grated nutmeg garnish.",flavor:"Silky, rich, warming dark rum with a velvet egg texture.",note:"The whole egg gives extraordinary silky body. Don't be afraid of the egg — dry shake it properly."},
+  {id:52,name:"Rum Old Fashioned",emoji:"🍫",base:"rum",tags:["spirit-forward","sweet","warming","tropical","rich"],ings:["Rum (Dark)","Angostura Bitters","Simple Syrup"],parts:["2 shots Rum (Dark)","2 dashes Angostura Bitters","¼ shot Simple Syrup"],method:"Add bitters and syrup to a rocks glass. Add rum. Add large ice cube. Stir 20 seconds. Orange peel garnish.",flavor:"Molasses and vanilla rum, spiced bitters, caramel sweetness.",note:"The Old Fashioned formula works with any aged spirit. Dark rum makes it tropical and rich."},
+  // APERITIVO
+  {id:41,name:"Negroni Sbagliato",emoji:"🍾",base:"aperitivo",tags:["bitter","bubbly","light","herbal","low-abv"],ings:["Campari","Sweet Vermouth","Club Soda"],parts:["1 shot Campari","1 shot Sweet Vermouth","2 shots Club Soda"],method:"Build in a rocks glass over ice. Stir once gently. Orange slice garnish.",flavor:"Lightly bitter, herbal, effervescent — a Negroni with bubbles.",note:"The 'mistake' Negroni. Someone grabbed sparkling wine instead of gin. The mistake was better."},
+  {id:42,name:"Aperol Spritz",emoji:"🧡",base:"aperitivo",tags:["light","bubbly","bitter","citrus","low-abv","refreshing"],ings:["Aperol","Club Soda"],parts:["2 shots Aperol","3 shots Club Soda"],method:"Fill a large wine glass with ice. Add Aperol, then club soda. Stir gently. Orange slice garnish.",flavor:"Light, bittersweet orange, effervescent and refreshing.",note:"Traditionally Prosecco. Club soda works well. Endlessly sessionable."},
+  {id:43,name:"Americano",emoji:"🇮🇹",base:"aperitivo",tags:["bitter","bubbly","herbal","light","low-abv"],ings:["Campari","Sweet Vermouth","Club Soda"],parts:["1 shot Campari","1 shot Sweet Vermouth","2–3 shots Club Soda"],method:"Build in a rocks glass over ice. Stir. Orange peel garnish.",flavor:"Bitter, herbal, lightly sweet, refreshingly bubbly.",note:"The predecessor to the Negroni. James Bond's first-ever drink order."},
+  {id:50,name:"St-Germain Spritz",emoji:"🌸",base:"liqueur",tags:["floral","light","bubbly","refreshing","sweet","elegant"],ings:["St-Germain Elderflower","Club Soda"],parts:["2 shots St-Germain Elderflower","3 shots Club Soda"],method:"Build in a large wine glass over ice. Stir gently. Lemon twist garnish.",flavor:"Delicate elderflower, lightly sweet, floral and refreshing.",note:"Traditionally with Champagne or white wine. Club soda is clean and lovely."},
+  // BRANDY / LIQUEUR
+  {id:44,name:"Sidecar",emoji:"🏍️",base:"brandy",tags:["citrus","tart","elegant","classic","warming"],ings:["Brandy","Triple Sec","Lemon Juice"],parts:["2 shots Brandy","1 shot Triple Sec","¾ shot Lemon Juice"],method:"Sugar rim optional. Shake all ingredients with ice. Strain into a chilled coupe.",flavor:"Bright citrus, rich brandy, clean and elegant.",note:"One of the founding cocktails. Adjust lemon to taste."},
+  {id:45,name:"Amaretto Sour",emoji:"🍑",base:"liqueur",tags:["sweet","citrus","tart","nutty","approachable"],ings:["Amaretto","Lemon Juice","Simple Syrup","Angostura Bitters"],parts:["2 shots Amaretto","¾ shot Lemon Juice","¼ shot Simple Syrup","2 dashes Angostura Bitters"],method:"Shake with ice. Strain over a large ice cube. Cherry and orange peel garnish.",flavor:"Sweet almond, tart citrus, warm finish with bitters complexity.",note:"The bitters are non-negotiable — they cut sweetness and make this a real cocktail."},
+  {id:56,name:"Carajillo",emoji:"🤎",base:"liqueur",tags:["coffee","sweet","warming","simple","rich"],ings:["Licor 43","Espresso"],parts:["2 shots Licor 43","1 shot Espresso (cooled slightly)"],method:"Pour Licor 43 over ice in a rocks glass. Add espresso. Stir gently.",flavor:"Vanilla-citrus liqueur meets bold espresso — sweet, aromatic, and warming.",note:"A Spanish staple. Licor 43 is the only correct base. Fresh espresso makes or breaks it."},
+  {id:54,name:"Kahlúa Sour",emoji:"☕",base:"liqueur",tags:["coffee","citrus","sweet","tart","approachable"],ings:["Kahlúa","Bourbon","Lemon Juice","Simple Syrup"],parts:["1 shot Kahlúa","1 shot Bourbon","¾ shot Lemon Juice","¼ shot Simple Syrup"],method:"Shake with ice. Strain over ice. Cherry garnish.",flavor:"Coffee liqueur meets whiskey sour — sweet, tart, complex.",note:"A sleeper hit. The coffee note from Kahlúa plays beautifully against lemon."},
+  {id:46,name:"B-52",emoji:"💣",base:"liqueur",tags:["coffee","creamy","sweet","layered","dessert"],ings:["Kahlúa","Baileys Irish Cream","Grand Marnier"],parts:["⅓ shot Kahlúa","⅓ shot Baileys Irish Cream","⅓ shot Grand Marnier"],method:"Layer carefully in a shot glass: Kahlúa first, then Baileys floated over a spoon, then Grand Marnier. Do not mix.",flavor:"Coffee, creamy Irish cream, orange — each layer in sequence.",note:"The layering is the whole point. Drink it as a shot to get all three at once."},
+  {id:47,name:"Grasshopper",emoji:"🦗",base:"liqueur",tags:["minty","creamy","sweet","dessert","light"],ings:["Crème de Menthe","Crème de Cacao (Dark)","Heavy Cream"],parts:["1 shot Crème de Menthe","1 shot Crème de Cacao (Dark)","1 shot Heavy Cream"],method:"Shake with ice. Strain into a chilled coupe. Dusting of nutmeg or chocolate shavings.",flavor:"Minty, chocolatey, creamy — essentially a liquid thin mint.",note:"A dessert cocktail that fully commits. Using your Crème de Menthe makes this properly minty."},
+  {id:59,name:"Orange Sunset",emoji:"🌇",base:"liqueur",tags:["sweet","citrus","fruity","light","approachable"],ings:["Licor 43","Orange Juice","Grenadine"],parts:["1 shot Licor 43","3 shots Orange Juice","splash Grenadine"],method:"Build over ice in a tall glass. Add Licor 43 and OJ. Slowly pour grenadine down the side for the sunset layer. Do not stir.",flavor:"Sweet vanilla-citrus, bright orange, with a grenadine blush at the base.",note:"The gradient is the whole point — pour grenadine slowly and let it settle."},
+  {id:70,name:"Blackberry Sunset",emoji:"🌆",base:"liqueur",tags:["fruity","sweet","citrus","light","approachable"],ings:["Blackberry Brandy","Licor 43","Orange Juice","Grenadine"],parts:["1 shot Blackberry Brandy","1 shot Licor 43","3 shots Orange Juice","splash Grenadine"],method:"Build over ice in a tall glass. Add spirits and OJ. Slowly pour grenadine down the side for the sunset layer.",flavor:"Dark berry, vanilla-citrus, bright orange, with a grenadine blush.",note:"A house original. The Blackberry Brandy adds depth and color to the sunset formula."},
+  {id:60,name:"St. Germain Spritz",emoji:"🌸",base:"liqueur",tags:["floral","light","bubbly","refreshing","citrus","elegant"],ings:["St-Germain Elderflower","Lime Juice","Club Soda"],parts:["1½ shots St-Germain Elderflower","½ shot Lime Juice","3–4 shots Club Soda"],method:"Build over ice in a wine glass or highball. Add St-Germain and lime. Top with club soda. Stir gently.",flavor:"Delicate elderflower, bright citrus, effervescent and refreshing.",note:"The lime juice is the secret — it lifts the floral notes and keeps it from being cloying."},
+  {id:64,name:"Blackberry Brandy Sour",emoji:"🫐",base:"liqueur",tags:["fruity","tart","citrus","sweet","approachable"],ings:["Blackberry Brandy","Lemon Juice","Simple Syrup"],parts:["2 shots Blackberry Brandy","1 shot Lemon Juice","½ shot Simple Syrup"],method:"Shake hard with ice. Strain into rocks glass over fresh ice. Cherry garnish.",flavor:"Rich dark berry, proper acid balance, bright citrus lift.",note:"Rich fruit, proper acid balance. The lemon keeps it from being cloying. A house original."},
+  {id:73,name:"Sardini Martini",emoji:"🍸",base:"liqueur",tags:["fruity","citrus","sweet","approachable","light"],ings:["Blackberry Brandy","Vodka","Triple Sec","Lemon Juice"],parts:["2 shots Blackberry Brandy","1 shot Vodka","1 shot Triple Sec","splash Lemon Juice"],method:"Shake with ice. Strain into a chilled martini glass.",flavor:"Rich dark berry, clean vodka, citrus brightness from Triple Sec and lemon.",note:"A house original. Named appropriately. The Blackberry Brandy is the star."},
+  // NEW ADDITIONS
+  {id:80,name:"Irish Coffee",emoji:"☘️",base:"whiskey",tags:["coffee","warming","creamy","sweet","classic"],ings:["Irish Whiskey","Coffee","Simple Syrup","Heavy Cream"],parts:["1½ shots Irish Whiskey","4 shots Hot Coffee","½ shot Simple Syrup","1 shot Heavy Cream (float)"],method:"Warm a glass. Add whiskey, hot coffee, and syrup. Stir. Float lightly whipped cream over the back of a spoon — do not stir.",flavor:"Warm whiskey, rich coffee, sweet cream float — a complete experience in one glass.",note:"The cream float is everything. Slightly whipped (not fully) so it pours slowly. Drink through it."},
+  {id:81,name:"Clover Club",emoji:"🩷",base:"gin",tags:["fruity","tart","herbal","light","citrus","classic"],ings:["Gin","Lemon Juice","Simple Syrup","Grenadine","Egg White"],parts:["2 shots Gin","½ shot Lemon Juice","½ shot Simple Syrup","¼ shot Grenadine","½ Egg White"],method:"Dry shake all ingredients without ice first. Add ice, shake again hard. Double strain into a chilled coupe.",flavor:"Floral, tart, light raspberry-lemon with gin botanicals and a silky foam.",note:"Pre-Prohibition classic. Looks like a novelty. Is not. The egg white foam is the whole point."},
+  {id:82,name:"Aperol Sour",emoji:"🍊",base:"aperitivo",tags:["bitter","citrus","tart","light","refreshing"],ings:["Aperol","Lemon Juice","Simple Syrup","Egg White"],parts:["2 shots Aperol","¾ shot Lemon Juice","½ shot Simple Syrup","½ Egg White"],method:"Dry shake. Add ice, shake hard. Strain into a rocks glass over ice. Express orange peel on top.",flavor:"Bittersweet orange, tart citrus, silky foam — bright and elegant.",note:"Aperol's natural acidity makes it one of the best bases for a sour. Don't skip the egg white."},
+  {id:83,name:"Stinger",emoji:"🌿",base:"brandy",tags:["minty","spirit-forward","classic","elegant","refreshing"],ings:["Brandy","Crème de Menthe"],parts:["2 shots Brandy","1 shot Crème de Menthe"],method:"Stir with ice. Strain into a chilled coupe or over crushed ice.",flavor:"Smooth brandy, cooling mint — deceptively simple, deceptively strong.",note:"A Rat Pack-era classic. The Crème de Menthe freshens without masking the brandy."},
+  {id:84,name:"Suffering Bastard",emoji:"😤",base:"whiskey",tags:["spicy","citrus","complex","refreshing"],ings:["Bourbon","Gin","Lime Juice","Angostura Bitters","Ginger Beer"],parts:["1 shot Bourbon","1 shot Gin","½ shot Lime Juice","2 dashes Angostura Bitters","3 shots Ginger Beer"],method:"Shake bourbon, gin, lime, and bitters with ice. Strain into a highball over ice. Top with ginger beer. Cucumber slice garnish.",flavor:"Bourbon warmth, gin botanicals, ginger bite, citrus brightness — more interesting than it has any right to be.",note:"Invented in Cairo, 1942. The name is apt after the second one."},
+  {id:85,name:"Screwdriver",emoji:"🍊",base:"vodka",tags:["fruity","sweet","light","citrus","simple","approachable"],ings:["Vodka","Orange Juice"],parts:["2 shots Vodka","4 shots Orange Juice"],method:"Build in a highball over ice. Stir gently. Orange slice garnish.",flavor:"Clean, bright, sweet citrus — the simplest vodka cocktail.",note:"Allegedly named by American oil workers who stirred it with a screwdriver. Honest and effective."},
+  {id:86,name:"Tequila Mule",emoji:"🌵",base:"tequila",tags:["spicy","citrus","bubbly","refreshing","light"],ings:["Tequila (Blanco)","Ginger Beer","Lime Juice"],parts:["2 shots Tequila (Blanco)","3 shots Ginger Beer","½ shot Lime Juice"],method:"Fill a copper mug or highball with crushed ice. Add tequila and lime. Top with ginger beer. Stir gently.",flavor:"Agave brightness, sharp ginger, tart lime — the Moscow Mule's bolder cousin.",note:"The tequila's vegetal quality plays differently with ginger than vodka does. Worth making side by side."},
+  {id:87,name:"Rum & Coke",emoji:"🥤",base:"rum",tags:["sweet","simple","approachable","light","classic"],ings:["Rum (Dark)","Cola","Lime Juice"],parts:["2 shots Rum (Dark)","4 shots Cola","½ shot Lime Juice"],method:"Fill a highball with ice. Add rum and lime. Top with cola. Stir once. Lime wedge garnish.",flavor:"Sweet molasses rum, caramel cola, citrus brightness.",note:"The Cuba Libre. The lime is not optional — it transforms it. Use quality rum and cold cola."},
+  {id:88,name:"Amaretto & Coke",emoji:"🍑",base:"liqueur",tags:["sweet","simple","approachable","light","nutty"],ings:["Amaretto","Cola"],parts:["2 shots Amaretto","4 shots Cola"],method:"Build in a highball over ice. Stir gently. Cherry garnish.",flavor:"Sweet almond, caramel cola — easy and crowd-friendly.",note:"Underrated. The almond sweetness plays surprisingly well with cola's bitterness."},
+  {id:89,name:"White Negroni",emoji:"🌗",base:"gin",tags:["bitter","herbal","floral","elegant","complex"],ings:["Gin","Dry Vermouth","Aperol"],parts:["1½ shots Gin","¾ shot Dry Vermouth","¾ shot Aperol"],method:"Stir with ice until well chilled. Strain into a rocks glass over a large cube. Grapefruit twist garnish.",flavor:"Botanical gin, dry herbal vermouth, bittersweet Aperol — lighter and more floral than the classic.",note:"The White Negroni template using Aperol instead of Suze. Dry vermouth and Aperol create something delicate and unusual."},
+  {id:90,name:"Sloe Gin Fizz",emoji:"🍇",base:"gin",tags:["fruity","bubbly","tart","light","refreshing","classic"],ings:["Gin","Blackberry Brandy","Lemon Juice","Simple Syrup","Club Soda"],parts:["1 shot Gin","1 shot Blackberry Brandy","¾ shot Lemon Juice","½ shot Simple Syrup","2 shots Club Soda"],method:"Shake gin, blackberry brandy, lemon, and syrup with ice. Strain into a highball over ice. Top with club soda.",flavor:"Berry-bright, tart lemon, effervescent, gin backbone.",note:"Using blackberry brandy in place of sloe gin — different but captures the same fruity-tart spirit. Works beautifully."},
+  {id:91,name:"Honeybee",emoji:"🍯",base:"rum",tags:["sweet","citrus","tropical","light","refreshing"],ings:["Rum (White)","Lemon Juice","Honey Syrup"],parts:["2 shots Rum (White)","¾ shot Lemon Juice","¾ shot Honey Syrup"],method:"Shake with ice. Strain into a chilled coupe.",flavor:"Clean rum, honey sweetness, bright citrus — a tropical Bee's Knees.",note:"The Bee's Knees formula with white rum. The honey makes this softer and rounder than a Daiquiri."},
+  {id:92,name:"Pisco Sour",emoji:"🇵🇪",base:"brandy",tags:["citrus","tart","creamy","complex","classic"],ings:["Brandy","Lime Juice","Simple Syrup","Egg White","Angostura Bitters"],parts:["2 shots Brandy","¾ shot Lime Juice","¾ shot Simple Syrup","½ Egg White","3 dashes Angostura Bitters"],method:"Dry shake all ingredients without ice. Add ice and shake again hard. Strain into a chilled coupe. Dash bitters on top of the foam.",flavor:"Tart citrus, silky egg white foam, clean brandy depth — elegant and complex.",note:"Traditionally made with Pisco — brandy is the closest substitute in your bar. The bitters on foam is signature; don't skip it."},
+  {id:93,name:"Between the Sheets",emoji:"🛏️",base:"brandy",tags:["citrus","tart","complex","spirit-forward","classic"],ings:["Brandy","Rum (White)","Triple Sec","Lemon Juice"],parts:["¾ shot Brandy","¾ shot Rum (White)","¾ shot Triple Sec","¾ shot Lemon Juice"],method:"Shake all ingredients with ice. Strain into a chilled coupe. Lemon twist garnish.",flavor:"Equal parts complexity — brandy depth, rum sweetness, orange citrus, tart lemon.",note:"Equal parts sibling to the Sidecar and Daiquiri. Named in the Prohibition era for reasons that don't need explaining."},
+  {id:94,name:"Kir Royale",emoji:"💜",base:"liqueur",tags:["fruity","bubbly","light","sweet","elegant","low-abv"],ings:["Blackberry Brandy","Club Soda"],parts:["½ shot Blackberry Brandy","4 shots Club Soda"],method:"Pour blackberry brandy into a champagne flute. Top slowly with cold club soda or Champagne.",flavor:"Dark berry, lightly sweet, effervescent and elegant.",note:"Traditionally Crème de Cassis with Champagne. Blackberry brandy makes this a house version that works beautifully. Add a frozen raspberry if you have one."},
+];
+
+// ─── ENGINE ───────────────────────────────────────────────────────────────────
+const mkSet = list => new Set(list.map(s => s.toLowerCase().trim()));
+
+const owns = (ing, set) => [...set].some(o => o.includes(ing.toLowerCase()) || ing.toLowerCase().includes(o));
+
+const canMake = (c, set) => c.ings.every(i => owns(i, set));
+
+const missing = (c, set) => c.ings.filter(i => !owns(i, set));
+
+const moreLike = (c, all, set, n=4) => {
+  const score = x => x.tags.filter(t => c.tags.includes(t)).length*2 + (x.base===c.base?3:0) + (canMake(x,set)?2:0);
+  return all.filter(x=>x.id!==c.id).sort((a,b)=>score(b)-score(a)).slice(0,n);
+};
+
+const suggest = ({flavs, base, set, all}) => {
+  const ready = all.filter(c=>canMake(c,set));
+  const almost = all.filter(c=>!canMake(c,set)).map(c=>({...c,miss:missing(c,set)})).filter(c=>c.miss.length===1);
+  const score = c => {
+    let s=0;
+    if (flavs.length) s += flavs.filter(f=>c.tags.some(t=>t.includes(f.toLowerCase())||f.toLowerCase().includes(t))).length*10;
+    if (base) {
+      const p=base.toLowerCase(), b=c.base.toLowerCase();
+      if (p.includes(b)||b.includes(p)||(p.includes('whiskey')&&['whiskey','bourbon','rye','scotch'].includes(b))) s+=8;
+    }
+    return s;
+  };
+  const res=[], used=new Set();
+  for (const c of [...ready].sort((a,b)=>score(b)-score(a))) {
+    if (res.length>=3) break;
+    if (!used.has(c.id)) { res.push({...c,canMake:true,miss:[]}); used.add(c.id); }
+  }
+  if (res.length<3) {
+    for (const c of [...almost].sort((a,b)=>score(b)-score(a))) {
+      if (res.length>=3) break;
+      if (!used.has(c.id)) { res.push({...c,canMake:false}); used.add(c.id); }
+    }
+  }
+  const mc={};
+  for (const c of all) {
+    if (canMake(c,set)) continue;
+    const m=missing(c,set);
+    if (m.length===1) { mc[m[0]]=mc[m[0]]||[]; mc[m[0]].push(c.name); }
+  }
+  const top = Object.entries(mc).sort((a,b)=>b[1].length-a[1].length)[0];
+  return { results: res, next: top ? {ing:top[0], unlocks:top[1]} : null };
+};
+
+async function searchExternal(q) {
+  try {
+    const r = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${encodeURIComponent(q)}`);
+    const d = await r.json();
+    if (!d.drinks) return [];
+    return d.drinks.slice(0,5).map(x => {
+      const ings=[], parts=[];
+      for (let i=1;i<=15;i++) {
+        const ing=x[`strIngredient${i}`], m=x[`strMeasure${i}`];
+        if (ing?.trim()) { ings.push(ing.trim()); parts.push(toShots(m?.trim()||'',ing.trim())); }
+      }
+      const s=ings.join(' ').toLowerCase();
+      const base=/bourbon|rye|whiskey|whisky/.test(s)?'whiskey':/scotch/.test(s)?'whiskey':/\bgin\b/.test(s)?'gin':/vodka/.test(s)?'vodka':/tequila|mezcal/.test(s)?'tequila':/\brum\b/.test(s)?'rum':'other';
+      return {id:`ext_${x.idDrink}`,name:x.strDrink,emoji:'🍹',base,tags:[],ings,parts,method:x.strInstructions||'',flavor:`${x.strCategory||'Cocktail'} · ${x.strAlcoholic||''}`,note:`Imported from TheCocktailDB. Glass: ${x.strGlass||'unknown'}.`,isImported:true};
+    });
+  } catch { return null; }
+}
+
+function toShots(m, ing) {
+  if (!m) return ing;
+  const oz=m.toLowerCase().match(/^(\d+(?:\s+\d+\/\d+|\.\d+|\/\d+)?)\s*oz/);
+  if (oz) {
+    let v=0,r=oz[1].trim();
+    if (r.includes(' ')) { const p=r.split(' '); v=parseFloat(p[0]); if(p[1]?.includes('/')) { const [n,d]=p[1].split('/'); v+=parseFloat(n)/parseFloat(d); } }
+    else if (r.includes('/')) { const [n,d]=r.split('/'); v=parseFloat(n)/parseFloat(d); }
+    else v=parseFloat(r);
+    const s=v/1.5;
+    const lbl=s<=.2?'splash':s<=.42?'¼ shot':s<=.58?'½ shot':s<=.83?'¾ shot':s<=1.17?'1 shot':s<=1.5?'1½ shots':s<=2.17?'2 shots':`${Math.round(s*2)/2} shots`;
+    return `${lbl} ${ing}`;
+  }
+  return `${m} ${ing}`.trim();
+}
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+const ld = (k,fb) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb; } catch { return fb; } };
+const sv = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} };
+
+// ─── CARD ─────────────────────────────────────────────────────────────────────
+function Card({ c, set, onFav, onMore, onCart, cart, all, onEdit, open0=false }) {
+  const [open, setOpen] = useState(open0);
+  const mk = canMake(c, set);
+  const mis = missing(c, set);
+  const has = ing => owns(ing, set);
+  return (
+    <div className="card">
+      <div className="card-hdr" onClick={()=>setOpen(o=>!o)}>
+        <div style={{flex:1,minWidth:0}}>
+          <div className="card-name">{c.emoji} {c.name}</div>
+          <div style={{marginTop:4,display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+            {mk ? <span className="badge b-ready">✓ ready</span> : <span className="badge b-miss">{mis.length} needed</span>}
+            {c.isImported && <span className="badge b-imp">imported</span>}
+            {(c.tags||[]).slice(0,2).map(t=><span key={t} className="badge b-tag">{t}</span>)}
+          </div>
+        </div>
+        <div className="card-meta">
+          <button className={`fav${c.fav?' on':''}`} onClick={e=>{e.stopPropagation();onFav(c.id)}}>{c.fav?'★':'☆'}</button>
+          {onEdit && <button className="edit-btn" onClick={e=>{e.stopPropagation();onEdit(c)}} title="Edit recipe">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>}
+          <span className={`chev${open?' open':''}`}>▶</span>
+        </div>
+      </div>
+      {open && (
+        <div className="card-body">
+          <div className="hero">{c.emoji}</div>
+          <p className="lbl">Flavor Profile</p>
+          <p className="flavor">{c.flavor}</p>
+          <p className="lbl">Ingredients</p>
+          <ul className="ings">
+            {c.parts.map((p,i) => {
+              const h=has(c.ings[i]||''), inCart=cart?.includes(c.ings[i]);
+              return (
+                <li key={i} className={h?'have':'need'}>
+                  <span className="chk">{h?'✓':'○'}</span>
+                  <span style={{flex:1}}>{p}</span>
+                  {!h && onCart && !inCart && <button className="add-btn" onClick={e=>{e.stopPropagation();onCart(c.ings[i])}}>+</button>}
+                  {!h && inCart && <span className="listed">✓ listed</span>}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="lbl">Method</p>
+          <p className="instr">{c.method}</p>
+          {c.note && <><p className="lbl">Notes</p><p className="note">{c.note}</p></>}
+          {onMore && <div style={{marginTop:20}}><button className="btn ghost sm" onClick={()=>onMore(c)}>More like this →</button></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── MORE LIKE THIS ───────────────────────────────────────────────────────────
+function MoreModal({ c, all, set, onFav, onCart, cart, onClose }) {
+  const similar = moreLike(c, all, set, 4);
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="mpanel" onClick={e=>e.stopPropagation()}>
+        <div className="mhdr">
+          <p className="lbl" style={{margin:0}}>More like</p>
+          <h3 className="mtitle">{c.emoji} {c.name}</h3>
+          <button className="mclose" onClick={onClose}>✕</button>
+        </div>
+        <div className="mbody">
+          {similar.map(x=><Card key={x.id} c={x} set={set} onFav={onFav} onCart={onCart} cart={cart} all={all} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── HOME VIEW ────────────────────────────────────────────────────────────────
+
+// ─── HOME VIEW ────────────────────────────────────────────────────────────────
+function HomeView({ set, all, cart, onNav }) {
+  const mkCount = all.filter(c=>canMake(c,set)).length;
+  const favCount = all.filter(c=>c.fav).length;
+  const topRef = useRef(null);
+  return (
+    <div className="home" ref={topRef}>
+      <div className="orn">🍻🍸🥃🍹🥂</div>
+      <h2 className="hhead">What are we drinking?</h2>
+      <p className="hsub">The bar is stocked.<br/>Your glass is waiting.</p>
+      <div className="hactions">
+        {[
+          ['recipes',   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>,   'Cocktails'],
+          ['inventory', <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h18M3 18h12"/></svg>, 'Ingredients'],
+          ['discover',  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>,  'Explore'],
+        ].map(([id,icon,label])=>(
+          <button key={id} className="hbtn" onClick={()=>onNav(id)}>
+            <span className="hbtn-icon">{icon}</span>
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+      <div className="hstats">
+        <div>🍶 {set.size} ingredients in the bar</div>
+        <div>🍸 {mkCount} of {all.length} cocktails ready</div>
+        <div>★ {favCount} favorites saved</div>
+        {cart.length>0 && <div>🛒 {cart.length} items on shopping list</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── RECIPES VIEW (Favorites as filter tab) ───────────────────────────────────
+function RecipesView({ set, all, onFav, onMore, onCart, cart, onEdit }) {
+  const [q, setQ] = useState('');
+  const [f, setF] = useState('all');
+  const filtered = all.filter(c => {
+    const match = !q
+      || c.name.toLowerCase().includes(q.toLowerCase())
+      || c.ings.some(i=>i.toLowerCase().includes(q.toLowerCase()))
+      || c.flavor.toLowerCase().includes(q.toLowerCase())
+      || (c.tags||[]).some(t=>t.includes(q.toLowerCase()))
+      || c.base.includes(q.toLowerCase());
+    if (f==='ready')  return match && canMake(c,set);
+    if (f==='favs')   return match && c.fav;
+    if (f==='almost') { const m=missing(c,set); return match && m.length===1; }
+    return match;
+  });
+  return (
+    <div>
+      <div className="swrap">
+        <input className="sinput" placeholder="Search by name, ingredient, or flavor…" value={q} onChange={e=>setQ(e.target.value)} />
+        {q && <button className="sclr" onClick={()=>setQ('')}>✕</button>}
+      </div>
+      <div className="ftabs">
+        {[['all','All'],['ready','✓ Can Make'],['almost','1 Away'],['favs','★ Favorites']].map(([id,l])=>(
+          <button key={id} className={`nb${f===id?' on':''}`} style={{flex:1,padding:'10px 4px',fontSize:'15px'}} onClick={()=>setF(id)}>{l}</button>
+        ))}
+      </div>
+      <div className="sec">
+        {f==='favs' ? 'Favorites' : 'Cocktail Database'}
+        <span className="cnt">{filtered.length} drinks</span>
+      </div>
+      {filtered.length===0
+        ? <div className="empty">{f==='favs' ? 'No favorites yet. Tap ☆ on any drink.' : 'No cocktails match that search.'}</div>
+        : filtered.map(c=><Card key={c.id} c={c} set={set} onFav={onFav} onMore={onMore} onCart={onCart} cart={cart} all={all} onEdit={onEdit} open0={q.length>1&&filtered.length===1} />)
+      }
+    </div>
+  );
+}
+
+// ─── INVENTORY VIEW ────────────────────────────────────────────────────────────
+function InventoryView({ owned, setOwned, cart, onCart }) {
+  const [newItem, setNew] = useState('');
+  const [catF, setCatF] = useState('all');
+  const [showAll, setShowAll] = useState(true);
+  const set = mkSet(owned);
+
+  const toggle = name => {
+    const l = name.toLowerCase();
+    setOwned(prev => prev.some(o=>o.toLowerCase()===l) ? prev.filter(o=>o.toLowerCase()!==l) : [...prev,name]);
+  };
+  const addCustom = () => {
+    const t = newItem.trim();
+    if (!t) return;
+    if (!owned.some(o=>o.toLowerCase()===t.toLowerCase())) setOwned(prev=>[...prev,t]);
+    setNew('');
+  };
+
+
+  const cats = Object.entries(CATALOG).filter(([cat])=>catF==='all'||cat===catF);
+
+  return (
+    <div>
+      <p className="muted-txt" style={{marginTop:4}}>Tap any ingredient to toggle in/out of your bar. <span style={{color:'var(--amber)',fontWeight:400}}>{owned.length} stocked.</span></p>
+      <div className="arow">
+        <input className="ainput" placeholder="Add ingredient…" value={newItem} onChange={e=>setNew(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addCustom()} style={{flex:1}} />
+        <button className="btn" onClick={addCustom} style={{flexShrink:0}}>Add</button>
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
+        <button className={`nb${catF==='all'?' on':''}`} style={{fontSize:'15px',padding:'9px 12px'}} onClick={()=>setCatF('all')}>All</button>
+        {Object.keys(CATALOG).map(c=>(
+          <button key={c} className={`nb${catF===c?' on':''}`} style={{fontSize:'14px',padding:'9px 10px'}} onClick={()=>setCatF(c)}>{c.split(' ')[0]}</button>
+        ))}
+      </div>
+      <div style={{display:'flex',gap:6,marginBottom:16}}>
+        <button className={`nb${showAll?' on':''}`} style={{fontSize:'14px',padding:'9px 18px',flex:1}} onClick={()=>setShowAll(true)}>Full Catalog</button>
+        <button className={`nb${!showAll?' on':''}`} style={{fontSize:'14px',padding:'9px 18px',flex:1}} onClick={()=>setShowAll(false)}>Stocked Only</button>
+      </div>
+      {cats.map(([cat,items]) => {
+        const visible = showAll ? items : items.filter(i=>owned.some(o=>o.toLowerCase()===i.toLowerCase()));
+        if (!visible.length) return null;
+        return (
+          <div key={cat} className="icat">
+            <div className="icattitle">
+              {cat} <span style={{color:'#b8a98a',fontWeight:300}}>
+                ({items.filter(i=>owned.some(o=>o.toLowerCase()===i.toLowerCase())).length}/{items.length})
+              </span>
+            </div>
+            <div className="igrid">
+              {visible.map(item => {
+                const isOwned = owned.some(o=>o.toLowerCase()===item.toLowerCase());
+                const inCart  = cart.includes(item);
+                return (
+                  <div key={item} className={`iitem${isOwned?' owned':' unowned'}`} onClick={()=>toggle(item)}>
+                    <span className={`ichk${isOwned?' on':''}`}>{isOwned?'✓':''}</span>
+                    <span className="iname">{item}</span>
+                    {!isOwned && (
+                      <button
+                        className={`cartbtn${inCart?' in-cart':''}`}
+                        onClick={e=>{e.stopPropagation();if(!inCart)onCart(item)}}
+                      >{inCart?'✓':'+'}</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+    </div>
+  );
+}
+
+// ─── DISCOVER VIEW (Ideas + Find as side-by-side tiles) ───────────────────────
+const FLAVORS = [["Bitter","🍊"],["Citrusy","🍋"],["Sweet","🍬"],["Smoky","💨"],["Tropical","🍍"],["Bubbly","🫧"],["Spirit-Forward","🥃"],["Herbal","🌿"],["Spicy","🌶️"],["Coffee","☕"],["Tart","🍑"],["Refreshing","💧"],["Creamy","🥛"],["Fruity","🍒"]];
+const BASES   = ["Whiskey / Bourbon","Vodka","Gin","Rum","Tequila","Aperitivo","Scotch","No Preference"];
+const BLANK_RECIPE = { name:'', emoji:'🍹', base:'other', flavor:'', method:'', note:'' };
+
+function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit }) {
+  const [open, setOpen] = useState(null); // null | 'ideas' | 'find'
+
+  // Ideas state
+  const [flavs, setFlavs]   = useState([]);
+  const [base, setBase]     = useState('');
+  const [res, setRes]       = useState(null);
+  const toggleFlav = f => setFlavs(prev=>prev.includes(f)?prev.filter(x=>x!==f):[...prev,f]);
+  const goIdeas = () => setRes(suggest({flavs, base:base==='No Preference'?'':base, set, all}));
+  const readyCount = all.filter(c=>canMake(c,set)).length;
+
+  // Find state
+  const [q, setQ]                     = useState('');
+  const [findRes, setFindRes]         = useState(null);
+  const [loading, setLoading]         = useState(false);
+  const [networkBlocked, setBlocked]  = useState(false);
+  const [imported, setImported]       = useState(new Set());
+  const [manualMode, setManualMode]   = useState(false);
+  const [draft, setDraft]             = useState(BLANK_RECIPE);
+  const [ingLines, setIngLines]       = useState(['','','']);
+
+  const inDB = name => all.some(c=>c.name.toLowerCase()===name.toLowerCase());
+  const doImport = c => { onImport(c); setImported(prev=>new Set([...prev,c.id])); };
+
+  const goSearch = async () => {
+    if (!q.trim()) return;
+    setLoading(true); setFindRes(null); setBlocked(false);
+    const r = await searchExternal(q);
+    if (r===null) setBlocked(true);
+    else if (r.length===0) setFindRes([]);
+    else setFindRes(r);
+    setLoading(false);
+  };
+
+  const updateIng = (i,val) => { const n=[...ingLines]; n[i]=val; setIngLines(n); };
+  const submitManual = () => {
+    const name = draft.name.trim();
+    if (!name) return;
+    const filled = ingLines.filter(l=>l.trim());
+    const ings   = filled.map(l=>l.split('—')[0].trim()||l.trim());
+    onImport({ id:`manual_${Date.now()}`, name, emoji:draft.emoji||'🍹', base:draft.base||'other',
+      tags:[], ings, parts:filled, method:draft.method.trim()||'See recipe.',
+      flavor:draft.flavor.trim()||'', note:draft.note.trim()||'', isImported:true });
+    setDraft(BLANK_RECIPE); setIngLines(['','','']); setManualMode(false);
+  };
+
+  const handleTile = which => setOpen(prev => prev===which ? null : which);
+
+  return (
+    <div>
+      <div className="disc-tiles" style={{marginTop:4}}>
+        <div className={`disc-tile${open==='ideas'?' open':''}`} onClick={()=>handleTile('ideas')}>
+          <span className="disc-tile-icon">✦</span>
+          <span className="disc-tile-label">Ideas</span>
+          <span className="disc-tile-sub">Get suggestions from your bar</span>
+        </div>
+        <div className={`disc-tile${open==='find'?' open':''}`} onClick={()=>handleTile('find')}>
+          <span className="disc-tile-icon">🔍</span>
+          <span className="disc-tile-label">Find</span>
+          <span className="disc-tile-sub">Search & add new recipes</span>
+        </div>
+      </div>
+
+      {/* ── IDEAS PANEL ── */}
+      {open==='ideas' && (
+        <div className="disc-panel">
+          <div className="psec" style={{marginTop:16}}>
+            <p className="lbl">Flavor notes</p>
+            <div className="pgrid">
+              {FLAVORS.map(([f,icon])=><button key={f} className={`chip${flavs.includes(f)?' on':''}`} onClick={()=>toggleFlav(f)}>{icon} {f}</button>)}
+            </div>
+          </div>
+          <div className="psec">
+            <p className="lbl">Base spirit</p>
+            <div className="pgrid">
+              {BASES.map(b=><button key={b} className={`chip${base===b?' on':''}`} onClick={()=>setBase(prev=>prev===b?'':b)}>{b}</button>)}
+            </div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap',marginBottom:20}}>
+            <button className="btn" onClick={goIdeas}>Suggest Drinks</button>
+            <span style={{fontSize:'1.05rem',fontWeight:300,color:'#b8a98a'}}>{readyCount} ready now</span>
+          </div>
+          {res && (
+            <div className="rpanel">
+              <p className="rtitle">{flavs.length===0&&!base?"Tonight's Options":"Matched to Your Preferences"}</p>
+              {res.results.length===0
+                ? <div className="empty" style={{padding:'16px 0'}}>No strong matches — try adjusting.</div>
+                : res.results.map(c=>(
+                    <div key={c.id} className="ritem">
+                      <div className="rname">{c.emoji} {c.name} {c.canMake?<span className="badge b-ready">ready</span>:<span className="badge b-miss">needs: {c.miss?.[0]}</span>}</div>
+                      <p className="rreason">{(c.tags||[]).slice(0,3).join(', ')} — {c.flavor.split('.')[0].toLowerCase()}.</p>
+                      <Card c={c} set={set} onFav={onFav} onMore={onMore} onCart={onCart} cart={cart} all={all} onEdit={onEdit} />
+                    </div>
+                  ))
+              }
+              {res.next && (
+                <div className="acqbox">
+                  <p className="acqtitle">Next Acquisition</p>
+                  <p className="acqname">{res.next.ing}</p>
+                  <p className="acqsub">Unlocks {res.next.unlocks.length} new drink{res.next.unlocks.length>1?'s':''}: {res.next.unlocks.join(', ')}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── FIND PANEL ── */}
+      {open==='find' && (
+        <div className="disc-panel">
+          {!manualMode && (
+            <>
+              <p className="muted-txt" style={{marginTop:16}}>Search TheCocktailDB or add a recipe manually.</p>
+              <div className="arow">
+                <input className="ainput" placeholder="Search cocktail name…" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&goSearch()} style={{fontSize:'1rem'}} />
+                <button className="btn" onClick={goSearch} disabled={loading}>{loading?'…':'Search'}</button>
+              </div>
+              <div style={{marginBottom:16}}>
+                <button className="btn ghost sm" onClick={()=>setManualMode(true)}>+ Add Recipe Manually</button>
+              </div>
+            </>
+          )}
+          {manualMode && (
+            <div style={{background:'var(--slate-mid)',border:'1px solid var(--amber-dim)',borderRadius:8,padding:18,marginTop:14,marginBottom:16}}>
+              <p className="lbl" style={{marginTop:0}}>Add a Recipe</p>
+              <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+                <input className="ainput" placeholder="Cocktail name…" value={draft.name} onChange={e=>setDraft(d=>({...d,name:e.target.value}))} style={{flex:2,minWidth:140}} />
+                <input className="ainput" placeholder="🍹" value={draft.emoji} onChange={e=>setDraft(d=>({...d,emoji:e.target.value}))} style={{width:58,textAlign:'center',fontSize:'1.2rem'}} />
+              </div>
+              <p className="lbl">Ingredients <span style={{color:'#b8a98a',fontSize:'8px',letterSpacing:'.1em'}}>— include measure e.g. "2 shots Gin"</span></p>
+              {ingLines.map((line,i)=>(
+                <div key={i} style={{display:'flex',gap:6,marginBottom:6}}>
+                  <input className="ainput" placeholder={`Ingredient ${i+1}…`} value={line} onChange={e=>updateIng(i,e.target.value)} />
+                  {ingLines.length>1 && <button className="btn ghost sm" onClick={()=>setIngLines(p=>p.filter((_,idx)=>idx!==i))}>✕</button>}
+                </div>
+              ))}
+              <button className="btn ghost sm" onClick={()=>setIngLines(p=>[...p,''])} style={{marginBottom:12}}>+ ingredient</button>
+              <p className="lbl">Flavor Profile</p>
+              <input className="ainput" placeholder="e.g. Bright citrus, herbaceous…" value={draft.flavor} onChange={e=>setDraft(d=>({...d,flavor:e.target.value}))} style={{width:'100%',marginBottom:8}} />
+              <p className="lbl">Method</p>
+              <textarea className="ainput" placeholder="Build instructions…" value={draft.method} onChange={e=>setDraft(d=>({...d,method:e.target.value}))} rows={3} style={{width:'100%',marginBottom:8}} />
+              <p className="lbl">Notes</p>
+              <input className="ainput" placeholder="Optional tips…" value={draft.note} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} style={{width:'100%',marginBottom:14}} />
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn" onClick={submitManual} disabled={!draft.name.trim()}>Add to Library</button>
+                <button className="btn ghost" onClick={()=>{setManualMode(false);setDraft(BLANK_RECIPE);setIngLines(['','','']);}}>Cancel</button>
+              </div>
+            </div>
+          )}
+          {loading && <div style={{padding:'24px 0',textAlign:'center'}}><div className="dots"><span/><span/><span/></div></div>}
+          {networkBlocked && (
+            <div style={{background:'var(--slate-mid)',border:'1px solid var(--slate-light)',borderRadius:8,padding:18,marginTop:4}}>
+              <p style={{color:'var(--amber)',fontSize:'15px',letterSpacing:'.2em',textTransform:'uppercase',marginBottom:8}}>External Search Unavailable</p>
+              <p style={{color:'var(--cream)',fontSize:'1.19rem',fontWeight:300,lineHeight:1.7,marginBottom:14}}>
+                The cocktail database can't be reached in this preview environment. Use the form above to add recipes manually, or deploy the app to enable live search.
+              </p>
+              <button className="btn sm" onClick={()=>setManualMode(true)}>+ Add Recipe Manually</button>
+            </div>
+          )}
+          {findRes!==null && findRes.length===0 && <div className="empty">No recipes found for "{q}".</div>}
+          {findRes?.map(r => {
+            const inApp=inDB(r.name), wasImported=imported.has(r.id);
+            return (
+              <div key={r.id} className="card" style={{marginBottom:14}}>
+                <div className="card-hdr" style={{cursor:'default'}}>
+                  <div className="card-emoji">{r.emoji}</div>
+                  <div className="card-info">
+                    <div className="card-name">{r.name}</div>
+                    <div className="card-tags"><span className="badge b-imp">from database</span></div>
+                  </div>
+                  <div>
+                    {inApp ? <span style={{fontSize:'14px',color:'#b8a98a'}}>in library</span>
+                      : wasImported ? <span style={{fontSize:'14px',color:'var(--amber)'}}>✓ added</span>
+                      : <button className="btn sm" onClick={()=>doImport(r)}>Add</button>}
+                  </div>
+                </div>
+                <div className="card-body" style={{borderTop:'1px solid var(--slate-light)',padding:'12px 16px'}}>
+                  <p className="lbl">Ingredients</p>
+                  <ul className="ings">{r.parts.map((p,i)=><li key={i} className="have"><span className="chk">·</span>{p}</li>)}</ul>
+                  <p className="lbl" style={{marginTop:12}}>Method</p>
+                  <p className="instr">{r.method}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CART MANUAL ADD ─────────────────────────────────────────────────────────
+function CartManualAdd({ setCart }) {
+  const [val, setVal] = useState('');
+  const add = () => {
+    const t = val.trim();
+    if (!t) return;
+    setCart(prev => prev.includes(t) ? prev : [...prev, t]);
+    setVal('');
+  };
+  return (
+    <div style={{display:'flex',gap:8,marginTop:16,marginBottom:4}}>
+      <input
+        className="ainput"
+        placeholder="Add item manually…"
+        value={val}
+        onChange={e=>setVal(e.target.value)}
+        onKeyDown={e=>e.key==='Enter'&&add()}
+        style={{flex:1}}
+      />
+      <button className="btn sm" onClick={add}>Add</button>
+    </div>
+  );
+}
+
+// ─── EDIT MODAL ───────────────────────────────────────────────────────────────
+function EditModal({ c, onSave, onClose }) {
+  const [draft, setDraft] = useState({
+    name:   c.name,
+    emoji:  c.emoji,
+    flavor: c.flavor,
+    method: c.method,
+    note:   c.note || '',
+  });
+  const [parts, setParts] = useState([...c.parts]);
+  const [ings,  setIngs]  = useState([...c.ings]);
+
+  const updatePart = (i, val) => { const n=[...parts]; n[i]=val; setParts(n); };
+  const updateIng  = (i, val) => { const n=[...ings];  n[i]=val; setIngs(n); };
+  const addRow = () => { setParts(p=>[...p,'']); setIngs(g=>[...g,'']); };
+  const removeRow = i => { setParts(p=>p.filter((_,idx)=>idx!==i)); setIngs(g=>g.filter((_,idx)=>idx!==i)); };
+
+  const save = () => {
+    onSave({ ...c, ...draft, parts, ings });
+    onClose();
+  };
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="mpanel" onClick={e=>e.stopPropagation()} style={{maxHeight:'92vh'}}>
+        <div className="mhdr">
+          <p className="meyebrow">Recipe</p>
+          <h3 className="mtitle">Edit {c.name}</h3>
+          <button className="mclose" onClick={onClose}>✕</button>
+        </div>
+        <div className="mbody">
+          <div style={{display:'flex',gap:8,marginBottom:12}}>
+            <input className="ainput" value={draft.name} onChange={e=>setDraft(d=>({...d,name:e.target.value}))} placeholder="Name" style={{flex:1}} />
+            <input className="ainput" value={draft.emoji} onChange={e=>setDraft(d=>({...d,emoji:e.target.value}))} style={{width:54,textAlign:'center',fontSize:'1.3rem'}} />
+          </div>
+          <p className="lbl">Ingredients</p>
+          {parts.map((p,i)=>(
+            <div key={i} style={{display:'flex',gap:6,marginBottom:7,alignItems:'center'}}>
+              <input className="ainput" value={p} onChange={e=>updatePart(i,e.target.value)} placeholder="Measure + ingredient" style={{flex:2}} />
+              <input className="ainput" value={ings[i]||''} onChange={e=>updateIng(i,e.target.value)} placeholder="Ingredient key" style={{flex:1}} />
+              <button className="btn ghost sm" onClick={()=>removeRow(i)} style={{flexShrink:0,padding:'9px 10px'}}>✕</button>
+            </div>
+          ))}
+          <button className="btn ghost sm" onClick={addRow} style={{marginBottom:16}}>+ row</button>
+          <p className="lbl">Flavor Profile</p>
+          <input className="ainput" value={draft.flavor} onChange={e=>setDraft(d=>({...d,flavor:e.target.value}))} style={{width:'100%',marginBottom:10}} />
+          <p className="lbl">Method</p>
+          <textarea className="ainput" value={draft.method} onChange={e=>setDraft(d=>({...d,method:e.target.value}))} rows={3} style={{width:'100%',marginBottom:10}} />
+          <p className="lbl">Notes</p>
+          <input className="ainput" value={draft.note} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} style={{width:'100%',marginBottom:20}} />
+          <div style={{display:'flex',gap:10}}>
+            <button className="btn" onClick={save}>Save Changes</button>
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─── CART FAB + SHEET (global, always visible when cart has items) ────────────
+function CartPanel({ cart, setCart, owned, setOwned }) {
+  const [open, setOpen] = useState(false);
+  const hasItems = cart.length > 0;
+  const buyIt = item => {
+    if (!owned.some(o=>o.toLowerCase()===item.toLowerCase())) setOwned(prev=>[...prev,item]);
+    setCart(prev=>prev.filter(i=>i!==item));
+  };
+  return (
+    <>
+      <button
+        className="cart-fab"
+        onClick={()=>setOpen(true)}
+        title={`Shopping list (${cart.length})`}
+      >
+        🛒
+        <span className="cart-fab-badge">{cart.length}</span>
+      </button>
+      {open && (
+        <div className="overlay" onClick={()=>setOpen(false)}>
+          <div className="mpanel" onClick={e=>e.stopPropagation()}>
+            <div className="mhdr">
+              <p className="meyebrow">Inventory</p>
+              <h3 className="mtitle">🛒 Shopping List</h3>
+              <button className="mclose" onClick={()=>setOpen(false)}>✕</button>
+            </div>
+            <div className="mbody">
+              {!hasItems ? (
+                <div>
+                  <div style={{textAlign:'center',padding:'24px 0 20px'}}>
+                    <div style={{fontSize:'2.5rem',marginBottom:12}}>🛒</div>
+                    <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:'1.15rem',color:'var(--chalk)',marginBottom:8}}>Your list is empty.</p>
+                    <p style={{fontFamily:"'DM Mono',monospace",fontWeight:300,fontSize:'1.12rem',color:'#b8a98a',lineHeight:1.7,maxWidth:260,margin:'0 auto 20px'}}>Tap <strong style={{color:'var(--amber)'}}>+</strong> on any unowned ingredient in the Inventory page to add it here.</p>
+                  </div>
+                  <CartManualAdd setCart={setCart} />
+                </div>
+              ) : (
+                <>
+                  <p className="muted-txt">Tap "Got it" to add to your bar and remove from list.</p>
+                  {cart.map(item=>(
+                    <div key={item} className="sitem">
+                      <span className="sname">{item}</span>
+                      <div style={{display:'flex',gap:8,flexShrink:0}}>
+                        <button className="btn sm" onClick={()=>buyIt(item)}>Got it ✓</button>
+                        <button className="btn ghost sm" onClick={()=>setCart(prev=>prev.filter(i=>i!==item))}>✕</button>
+                      </div>
+                    </div>
+                  ))}
+                  <CartManualAdd setCart={setCart} />
+                  <div style={{marginTop:16}}>
+                    <button className="btn ghost" onClick={()=>setCart([])}>Clear List</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+// ─── ROOT ─────────────────────────────────────────────────────────────────────
+
+// ─── ROOT ─────────────────────────────────────────────────────────────────────
+
+// ─── ROOT ─────────────────────────────────────────────────────────────────────
+function App() {
+  const topRef = useRef(null);
+  const [view, setView]       = useState('home');
+  const [moreModal, setMore]  = useState(null);
+  const [editModal, setEdit]  = useState(null);
+  const [owned, setOwned]     = useState(() => ld('tdb_owned', DEFAULT_OWNED));
+  const [favIds, setFavIds]   = useState(() => ld('tdb_favs', []));
+  const [custom, setCustom]   = useState(() => ld('tdb_custom', []));
+  const [cart, setCart]       = useState(() => ld('tdb_cart', []));
+
+  useEffect(()=>{ sv('tdb_owned', owned);  }, [owned]);
+  useEffect(()=>{ sv('tdb_favs',  favIds); }, [favIds]);
+  useEffect(()=>{ sv('tdb_custom',custom); }, [custom]);
+  useEffect(()=>{ sv('tdb_cart',  cart);   }, [cart]);
+
+  const set = mkSet(owned);
+  const all = [
+    ...DB.map(c=>({...c, fav:favIds.includes(c.id)})),
+    ...custom.map(c=>({...c, fav:favIds.includes(c.id)})),
+  ];
+
+  const onFav    = id   => setFavIds(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev,id]);
+  const onCart   = item => setCart(prev => prev.includes(item) ? prev : [...prev,item]);
+  const onImport = c    => { if (!custom.some(x=>x.name.toLowerCase()===c.name.toLowerCase())) setCustom(prev=>[...prev,c]); };
+  const onEdit   = c    => setEdit(c);
+  const onSave   = updated => {
+    // If it's a custom recipe, update in place; otherwise save as custom override
+    if (custom.some(x=>x.id===updated.id)) {
+      setCustom(prev=>prev.map(x=>x.id===updated.id?updated:x));
+    } else {
+      // Store as custom override with same id so it replaces DB entry
+      setCustom(prev=>[...prev.filter(x=>x.id!==updated.id), {...updated, isEdited:true}]);
+    }
+  };
+
+  const goHome = () => {
+    setView('home');
+    if (topRef.current) topRef.current.scrollIntoView({ behavior: 'smooth' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const NAV = [
+    { id:'home',      label:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
+    { id:'recipes',   label:'Recipes'   },
+    { id:'inventory', label:'Inventory' },
+    { id:'discover',  label:'Discover'  },
+  ];
+
+  const shared = { set, all, onFav, onMore:setMore, onCart, cart, onEdit };
+
+  return (
+    <>
+      <div ref={topRef} />
+      <div className="shell">
+        {/* ── Logo header — tapping always goes Home ── */}
+        <header className="header" onClick={goHome} title="Home">
+          <div className="logo-wrap">
+            <img src="data:image/jpeg;base64,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" alt="The Drawing Board" className="logo-img" />
+          </div>
+          
+        </header>
+
+        {/* ── 3-item nav ── */}
+        <nav className="nav">
+          {NAV.map(n=>(
+            <button key={n.id} className={`nb${view===n.id?' on':''}`} style={n.id==='home'?{padding:'16px 18px'}:{}} onClick={()=>setView(n.id)}>{n.label}</button>
+          ))}
+        </nav>
+
+        <div className="content">
+          {view==='home'      && <HomeView {...shared} onNav={setView} />}
+          {view==='recipes'   && <RecipesView {...shared} />}
+          {view==='inventory' && <InventoryView owned={owned} setOwned={setOwned} cart={cart} onCart={onCart} />}
+          {view==='discover'  && <DiscoverView {...shared} onImport={onImport} />}
+        </div>
+      </div>
+      {moreModal && <MoreModal c={moreModal} all={all} set={set} onFav={onFav} onCart={onCart} cart={cart} onClose={()=>setMore(null)} />}
+      <CartPanel cart={cart} setCart={setCart} owned={owned} setOwned={setOwned} />
+      {editModal && <EditModal c={editModal} onSave={onSave} onClose={()=>setEdit(null)} />}
+    </>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+
+  </script>
+</body>
+</html>
