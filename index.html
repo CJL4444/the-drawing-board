@@ -4,12 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>The Drawing Board</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0e0c09" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Drawing Board" />
+  <link rel="apple-touch-icon" href="icon-512.png" />
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet" />
+
   <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -110,18 +118,18 @@ textarea.ainput{resize:vertical}
 
 /* ── INVENTORY ── */
 .icat{margin-bottom:24px}
-.icattitle{font-size:14px;letter-spacing:.25em;text-transform:uppercase;color:var(--amber);font-weight:300;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--slate-light)}
+.icattitle{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:300;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--slate-light)}
 .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:6px}
-.iitem{border-radius:8px;padding:12px 12px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:all .15s;border:1px solid transparent;min-height:50px}
+.iitem{border-radius:8px;padding:10px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:all .15s;border:1px solid transparent;min-height:44px}
 .iitem.owned{background:rgba(200,134,10,.09);border-color:rgba(200,134,10,.3)}
 .iitem.owned:hover{background:rgba(200,134,10,.15)}
 .iitem.unowned{background:var(--slate-mid);border-color:var(--slate-light)}
 .iitem.unowned:hover{border-color:var(--amber-dim)}
-.ichk{width:20px;height:20px;border-radius:4px;border:1px solid var(--slate-light);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .15s}
+.ichk{width:18px;height:18px;border-radius:4px;border:1px solid var(--slate-light);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:all .15s}
 .ichk.on{background:var(--amber);border-color:var(--amber);color:var(--ink);font-weight:700}
-.iname{font-family:'DM Mono',monospace;font-size:1.12rem;font-weight:300;color:var(--cream);flex:1;line-height:1.3}
+.iname{font-family:'DM Mono',monospace;font-size:.84rem;font-weight:300;color:var(--cream);flex:1;line-height:1.3}
 .iitem.unowned .iname{color:#b8a98a}
-.cartbtn{background:none;border:none;cursor:pointer;font-size:1.2rem;font-weight:200;padding:2px 6px;color:#b8a98a;transition:all .18s;flex-shrink:0;font-family:'DM Mono',monospace;line-height:1;opacity:.6}
+.cartbtn{background:none;border:none;cursor:pointer;font-size:.9rem;font-weight:200;padding:2px 5px;color:#b8a98a;transition:all .18s;flex-shrink:0;font-family:'DM Mono',monospace;line-height:1;opacity:.6}
 .cartbtn:hover{color:var(--amber);opacity:1}
 .cartbtn.in-cart{color:var(--amber-light);opacity:1;font-size:1rem}
 
@@ -196,7 +204,6 @@ textarea.ainput{resize:vertical}
 <body>
   <div id="root"></div>
 
-  <!-- React + Babel for JSX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
@@ -386,16 +393,44 @@ async function searchExternal(q) {
 
 function toShots(m, ing) {
   if (!m) return ing;
-  const oz=m.toLowerCase().match(/^(\d+(?:\s+\d+\/\d+|\.\d+|\/\d+)?)\s*oz/);
-  if (oz) {
-    let v=0,r=oz[1].trim();
-    if (r.includes(' ')) { const p=r.split(' '); v=parseFloat(p[0]); if(p[1]?.includes('/')) { const [n,d]=p[1].split('/'); v+=parseFloat(n)/parseFloat(d); } }
-    else if (r.includes('/')) { const [n,d]=r.split('/'); v=parseFloat(n)/parseFloat(d); }
-    else v=parseFloat(r);
-    const s=v/1.5;
-    const lbl=s<=.2?'splash':s<=.42?'¼ shot':s<=.58?'½ shot':s<=.83?'¾ shot':s<=1.17?'1 shot':s<=1.5?'1½ shots':s<=2.17?'2 shots':`${Math.round(s*2)/2} shots`;
-    return `${lbl} ${ing}`;
-  }
+  const raw = m.toLowerCase().trim();
+
+  const shotLabel = ozVal => {
+    const s = ozVal / 1.5;
+    return s<=.15?'dash':s<=.25?'splash':s<=.42?'¼ shot':s<=.58?'½ shot':s<=.83?'¾ shot':s<=1.17?'1 shot':s<=1.5?'1½ shots':s<=2.17?'2 shots':`${Math.round(s*2)/2} shots`;
+  };
+
+  const parseNum = str => {
+    str = str.trim();
+    if (str.includes(' ')) {
+      const p = str.split(' '); let v = parseFloat(p[0]);
+      if (p[1] && p[1].includes('/')) { const [n,d]=p[1].split('/'); v+=parseFloat(n)/parseFloat(d); }
+      return v;
+    }
+    if (str.includes('/')) { const [n,d]=str.split('/'); return parseFloat(n)/parseFloat(d); }
+    return parseFloat(str);
+  };
+
+  // oz — 1 shot = 1.5oz
+  const oz = raw.match(/^([\d\s./]+(?:\d\/\d)?)\s*oz/);
+  if (oz) { const v=parseNum(oz[1]); if(!isNaN(v)) return `${shotLabel(v)} ${ing}`; }
+
+  // ml — 1 shot = 44ml
+  const ml = raw.match(/^([\d\s./]+(?:\d\/\d)?)\s*ml/);
+  if (ml) { const v=parseNum(ml[1]); if(!isNaN(v)) return `${shotLabel(v/44)} ${ing}`; }
+
+  // cl — 1 shot = 4.4cl
+  const cl = raw.match(/^([\d\s./]+(?:\d\/\d)?)\s*cl/);
+  if (cl) { const v=parseNum(cl[1]); if(!isNaN(v)) return `${shotLabel(v/4.4)} ${ing}`; }
+
+  // parts — 1 part ≈ 1 shot
+  const pt = raw.match(/^([\d\s./]+(?:\d\/\d)?)\s*parts?/);
+  if (pt) { const v=parseNum(pt[1]); if(!isNaN(v)) return `${shotLabel(v*1.5)} ${ing}`; }
+
+  // tsp / tbsp
+  if (/\btsp\b/.test(raw))  return `dash ${ing}`;
+  if (/\btbsp\b/.test(raw)) return `splash ${ing}`;
+
   return `${m} ${ing}`.trim();
 }
 
@@ -1058,6 +1093,13 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 
+  </script>
+
+  <!-- Service Worker for offline support -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    }
   </script>
 </body>
 </html>
