@@ -618,7 +618,7 @@ function HomeView({ set, all, cart, onNav, setSurprise }) {
       <div className="hactions">
         {[
           ['recipes',   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>,   'Cocktails'],
-          ['inventory', <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h18M3 18h12"/></svg>, 'Ingredients'],
+          ['inventory', <span style={{fontSize:'1.2rem'}}>🗄️</span>, 'Ingredients'],
           ['discover',  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>,  'Explore'],
         ].map(([id,icon,label])=>(
           <button key={id} className="hbtn" onClick={()=>onNav(id)}>
@@ -638,7 +638,7 @@ function HomeView({ set, all, cart, onNav, setSurprise }) {
         </button>
       </div>
       <div className="hstats">
-        <div>🍶 {set.size} ingredients in the bar</div>
+        <div>🗄️ {set.size} ingredients in the bar</div>
         <div>🍸 {mkCount} of {all.length} cocktails ready</div>
         <div>★ {favCount} favorites saved</div>
         {cart.length>0 && <div>🛒 {cart.length} items on shopping list</div>}
@@ -648,18 +648,21 @@ function HomeView({ set, all, cart, onNav, setSurprise }) {
 }
 
 // ─── RECIPES VIEW (Favorites as filter tab) ───────────────────────────────────
+const BASE_ORDER = ['whiskey','gin','vodka','tequila','rum','brandy','aperitivo','liqueur','other'];
+
 function RecipesView({ set, all, onFav, onMore, onCart, cart, onEdit, onDelete, surpriseId, onSurpriseSeen }) {
-  const [q, setQ] = useState('');
-  const [f, setF] = useState('all');
+  const [q, setQ]         = useState('');
+  const [f, setF]         = useState('all');
+  const [sort, setSort]   = useState('az');
+  const [showSort, setShowSort] = useState(false);
   const [openId, setOpenId] = useState(null);
-  // Auto-open surprise card and scroll to it
+
   useEffect(()=>{
     if(surpriseId){
       setOpenId(surpriseId);
       setF('all');
       setQ('');
       onSurpriseSeen && onSurpriseSeen();
-      // Wait one tick for the card to render open, then scroll to it
       setTimeout(()=>{
         const el = document.getElementById(`card-${surpriseId}`);
         if(el){
@@ -669,6 +672,7 @@ function RecipesView({ set, all, onFav, onMore, onCart, cart, onEdit, onDelete, 
       }, 80);
     }
   }, [surpriseId]);
+
   const filtered = all.filter(c => {
     const match = !q
       || c.name.toLowerCase().includes(q.toLowerCase())
@@ -681,6 +685,53 @@ function RecipesView({ set, all, onFav, onMore, onCart, cart, onEdit, onDelete, 
     if (f==='almost') { const m=missing(c,set); return match && m.length===1; }
     return match;
   });
+
+  // Apply sort
+  const sorted = [...filtered].sort((a,b) => {
+    if (sort==='az')     return a.name.localeCompare(b.name);
+    if (sort==='newest') {
+      const aNew = a.isImported||a.isScan||a.isEdited ? 1 : 0;
+      const bNew = b.isImported||b.isScan||b.isEdited ? 1 : 0;
+      if (aNew !== bNew) return bNew - aNew;
+      return (b.id||0) - (a.id||0);
+    }
+    if (sort==='spirit') {
+      if (a.base !== b.base) return a.base.localeCompare(b.base);
+      return a.name.localeCompare(b.name);
+    }
+    return 0;
+  });
+
+  // For spirit grouping, build sections
+  const renderCards = () => {
+    if (sort !== 'spirit') {
+      return sorted.map(c=>(
+        <Card key={c.id} c={c} set={set} onFav={onFav} onMore={onMore} onCart={onCart} cart={cart} all={all} onEdit={onEdit} onDelete={onDelete} openId={openId} setOpenId={setOpenId} open0={q.length>1&&filtered.length===1} />
+      ));
+    }
+    // Group by base
+    const groups = [];
+    let lastBase = null;
+    sorted.forEach(c => {
+      if (c.base !== lastBase) {
+        groups.push({ base: c.base, cards: [] });
+        lastBase = c.base;
+      }
+      groups[groups.length-1].cards.push(c);
+    });
+    return groups.map(g => (
+      <div key={g.base}>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:'.72rem',letterSpacing:'.18em',textTransform:'uppercase',color:'var(--amber)',padding:'14px 0 8px',borderBottom:'1px solid var(--amber-dim)',marginBottom:8}}>
+          {g.base}
+          <span style={{color:'#b8a98a',marginLeft:8,fontWeight:300}}>{g.cards.length}</span>
+        </div>
+        {g.cards.map(c=>(
+          <Card key={c.id} c={c} set={set} onFav={onFav} onMore={onMore} onCart={onCart} cart={cart} all={all} onEdit={onEdit} onDelete={onDelete} openId={openId} setOpenId={setOpenId} open0={q.length>1&&filtered.length===1} />
+        ))}
+      </div>
+    ));
+  };
+
   return (
     <div>
       <div className="swrap">
@@ -692,13 +743,29 @@ function RecipesView({ set, all, onFav, onMore, onCart, cart, onEdit, onDelete, 
           <button key={id} className={`nb${f===id?' on':''}`} style={{flex:1,padding:'10px 4px',fontSize:'15px'}} onClick={()=>setF(id)}>{l}</button>
         ))}
       </div>
-      <div className="sec">
-        {f==='favs' ? 'Favorites' : 'Cocktail Database'}
-        <span className="cnt">{filtered.length} drinks</span>
+      <div className="sec" style={{display:'flex',alignItems:'center'}}>
+        <span style={{flex:1}}>{f==='favs' ? 'Favorites' : 'Cocktail Database'}</span>
+        <span className="cnt" style={{marginRight:8}}>{filtered.length} drinks</span>
+        <button className={`nb${showSort?' on':''}`}
+          style={{padding:'5px 10px',fontSize:'12px',marginLeft:4}}
+          onClick={()=>setShowSort(s=>!s)}>
+          ⇅{sort!=='az' ? ` ${sort==='spirit'?'Spirit':'Newest'}` : ' Sort'}
+        </button>
       </div>
+      {showSort && (
+        <div style={{display:'flex',gap:6,marginBottom:8}}>
+          {[['az','A – Z'],['spirit','By Spirit'],['newest','Newest First']].map(([id,l])=>(
+            <button key={id} className={`nb${sort===id?' on':''}`}
+              style={{flex:1,padding:'8px 4px',fontSize:'13px'}}
+              onClick={()=>{setSort(id);setShowSort(false);}}>
+              {l}
+            </button>
+          ))}
+        </div>
+      )}
       {filtered.length===0
         ? <div className="empty">{f==='favs' ? 'No favorites yet. Tap ☆ on any drink.' : 'No cocktails match that search.'}</div>
-        : filtered.map(c=><Card key={c.id} c={c} set={set} onFav={onFav} onMore={onMore} onCart={onCart} cart={cart} all={all} onEdit={onEdit} onDelete={onDelete} openId={openId} setOpenId={setOpenId} open0={q.length>1&&filtered.length===1} />)
+        : renderCards()
       }
     </div>
   );
@@ -728,12 +795,10 @@ function InventoryView({ owned, setOwned, cart, onCart, catalog, setCatalog }) {
 
   return (
     <div>
-      <p className="muted-txt" style={{marginTop:4}}>Tap any ingredient to toggle in/out of your bar. <span style={{color:'var(--amber)',fontWeight:400}}>{owned.length} stocked.</span></p>
-      <div className="arow">
-        <input className="ainput" placeholder="Add ingredient…" value={newItem} onChange={e=>setNew(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addCustom()} style={{flex:1}} />
-        <button className="btn" onClick={addCustom} style={{flexShrink:0}}>Add</button>
-      </div>
-      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
+      <p className="muted-txt" style={{marginTop:4}}>
+        <span style={{display:'flex',flexDirection:'column',gap:6}}><span style={{display:'inline-flex',alignItems:'center',gap:6}}>Tap <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:20,height:20,border:'1px solid #b8a98a',borderRadius:4,fontSize:'.75rem',color:'#b8a98a'}}></span> to stock. <span style={{color:'var(--amber)',fontWeight:400}}>{owned.length} stocked.</span></span><span style={{display:'inline-flex',alignItems:'center',gap:6}}>Tap <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:20,height:20,border:'1px solid #b8a98a',borderRadius:4,fontSize:'.85rem',color:'#b8a98a',fontWeight:500}}>+</span> to add to shopping list.</span></span>
+      </p>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12,marginTop:12}}>
         <button className={`nb${catF==='all'?' on':''}`} style={{fontSize:'15px',padding:'9px 12px'}} onClick={()=>setCatF('all')}>All</button>
         {Object.keys(catalog).map(c=>(
           <button key={c} className={`nb${catF===c?' on':''}`} style={{fontSize:'14px',padding:'9px 10px'}} onClick={()=>setCatF(c)}>{c.split(' ')[0]}</button>
@@ -776,10 +841,18 @@ function InventoryView({ owned, setOwned, cart, onCart, catalog, setCatalog }) {
       })}
 
       {catalogEdit && <CatalogEditModal catalog={catalog} setCatalog={setCatalog} owned={owned} setOwned={setOwned} onClose={()=>setCatalogEdit(false)} />}
-      {/* Edit Catalog button */}
-      <div style={{marginTop:32,paddingTop:20,borderTop:'1px solid var(--slate-light)',textAlign:'center'}}>
-        <p className="muted-txt" style={{marginBottom:10}}>Need to add, rename, or remove catalog entries?</p>
-        <button className="btn ghost sm" onClick={()=>setCatalogEdit(true)}>⚙️ Edit Master Ingredient List</button>
+
+      {/* Add ingredient + Edit Catalog */}
+      <div style={{marginTop:32,paddingTop:20,borderTop:'1px solid var(--slate-light)'}}>
+        <p className="lbl" style={{marginBottom:8}}>Add a custom ingredient</p>
+        <div className="arow" style={{marginBottom:20}}>
+          <input className="ainput" placeholder="e.g. Velvet Falernum…" value={newItem} onChange={e=>setNew(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addCustom()} style={{flex:1}} />
+          <button className="btn" onClick={addCustom} style={{flexShrink:0}}>Add</button>
+        </div>
+        <div style={{textAlign:'center'}}>
+          <p className="muted-txt" style={{marginBottom:10}}>Need to add, rename, or remove catalog entries?</p>
+          <button className="btn ghost sm" onClick={()=>setCatalogEdit(true)}>⚙️ Edit Master Ingredient List</button>
+        </div>
       </div>
 
     </div>
@@ -913,16 +986,19 @@ function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit,
               <div style={{marginBottom:16,display:'flex',flexDirection:'column',gap:8}}>
                 <button className="btn ghost sm" onClick={()=>setManualMode(true)}>+ Add Recipe Manually</button>
                 {apiKey?.length > 10 ? (
-                  <button className="btn ghost sm" style={{borderColor:'var(--amber-dim)',color:'var(--amber)'}} onClick={onScan}>
-                    📷 Scan a Recipe with Camera
-                  </button>
+                  <div>
+                    <button className="btn ghost sm" style={{borderColor:'var(--amber-dim)',color:'var(--amber)',width:'100%'}} onClick={onScan}>
+                      📷 Scan a Recipe with Camera
+                    </button>
+                    <p style={{fontFamily:"'DM Mono',monospace",fontSize:'.72rem',fontWeight:300,color:'#b8a98a',marginTop:5,textAlign:'center'}}>Uses your personal Claude API key</p>
+                  </div>
                 ) : (
                   <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'var(--slate-mid)',border:'1px solid var(--slate-light)',borderRadius:8}}>
                     <span style={{fontSize:'1.1rem'}}>📷</span>
                     <div style={{flex:1}}>
                       <p style={{fontFamily:"'DM Mono',monospace",fontSize:'.84rem',fontWeight:300,color:'#b8a98a',margin:0,lineHeight:1.6}}>
                         <strong style={{color:'var(--chalk)'}}>Camera Recipe Scanning</strong><br/>
-                        Snap any recipe and import it instantly.
+                        Snap any recipe and import it instantly. Requires a personal Claude API key.
                       </p>
                     </div>
                     <button className="btn ghost sm" style={{flexShrink:0,fontSize:'.78rem'}} onClick={onGoSettings}>Set Up →</button>
