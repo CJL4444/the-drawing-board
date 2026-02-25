@@ -390,7 +390,18 @@ function toShots(m, ing) {
 
   const shotLabel = ozVal => {
     const s = ozVal / 1.5;
-    return s<=.15?'dash':s<=.25?'splash':s<=.42?'.25 shot':s<=.58?'.5 shot':s<=.83?'.75 shot':s<=1.17?'1 shot':s<=1.5?'1.5 shots':s<=2.17?'2 shots':`${Math.round(s*4)/4} shots`;
+    const r = Math.round(s*4)/4;
+    if(r<=0.15) return 'dash';
+    if(r<=0.3)  return 'splash';
+    if(r<=0.37) return '.25 shot';
+    if(r<=0.62) return '.5 shot';
+    if(r<=0.87) return '.75 shot';
+    if(r<=1.12) return '1 shot';
+    if(r<=1.37) return '1.25 shots';
+    if(r<=1.62) return '1.5 shots';
+    if(r<=1.87) return '1.75 shots';
+    if(r<=2.12) return '2 shots';
+    return `${r} shots`;
   };
 
   const parseNum = str => {
@@ -714,6 +725,8 @@ function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit,
   const [imported, setImported]       = useState(new Set());
   const [manualMode, setManualMode]   = useState(false);
   const [draft, setDraft]             = useState(BLANK_RECIPE);
+  const [draftTags, setDraftTags]     = useState([]);
+  const toggleDraftTag = t => setDraftTags(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev,t]);
   const [ingLines, setIngLines]       = useState(['','','']);
 
   const inDB = name => all.some(c=>c.name.toLowerCase()===name.toLowerCase());
@@ -736,9 +749,9 @@ function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit,
     const filled = ingLines.filter(l=>l.trim());
     const ings   = filled.map(l=>l.split('—')[0].trim()||l.trim());
     onImport({ id:`manual_${Date.now()}`, name, emoji:draft.emoji||'🍹', base:draft.base||'other',
-      tags:[], ings, parts:filled, method:draft.method.trim()||'See recipe.',
+      tags:draftTags, ings, parts:filled, method:draft.method.trim()||'See recipe.',
       flavor:draft.flavor.trim()||'', note:draft.note.trim()||'', isImported:true });
-    setDraft(BLANK_RECIPE); setIngLines(['','','']); setManualMode(false);
+    setDraft(BLANK_RECIPE); setIngLines(['','','']); setDraftTags([]); setManualMode(false);
   };
 
   const handleTile = which => setOpen(prev => prev===which ? null : which);
@@ -849,14 +862,18 @@ function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit,
               ))}
               <button className="btn ghost sm" onClick={()=>setIngLines(p=>[...p,''])} style={{marginBottom:12}}>+ ingredient</button>
               <p className="lbl">Flavor Profile</p>
-              <input className="ainput" placeholder="e.g. Bright citrus, herbaceous…" value={draft.flavor} onChange={e=>setDraft(d=>({...d,flavor:e.target.value}))} style={{width:'100%',marginBottom:8}} />
+              <textarea className="ainput" placeholder="e.g. Bright citrus, herbaceous…" value={draft.flavor} onChange={e=>setDraft(d=>({...d,flavor:e.target.value}))} rows={2} style={{width:'100%',marginBottom:8,resize:'none'}} />
               <p className="lbl">Method</p>
               <textarea className="ainput" placeholder="Build instructions…" value={draft.method} onChange={e=>setDraft(d=>({...d,method:e.target.value}))} rows={3} style={{width:'100%',marginBottom:8}} />
               <p className="lbl">Notes</p>
-              <input className="ainput" placeholder="Optional tips…" value={draft.note} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} style={{width:'100%',marginBottom:14}} />
+              <input className="ainput" placeholder="Optional tips…" value={draft.note} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} style={{width:'100%',marginBottom:12}} />
+              <p className="lbl">Tags <span style={{color:'#b8a98a',fontSize:'8px',letterSpacing:'.1em'}}>— tap to select</span></p>
+              <div className="pgrid" style={{marginBottom:14}}>
+                {FLAVORS.map(([f,icon])=><button key={f} className={`chip${draftTags.includes(f.toLowerCase())?' on':''}`} onClick={()=>toggleDraftTag(f.toLowerCase())}>{icon} {f}</button>)}
+              </div>
               <div style={{display:'flex',gap:10}}>
                 <button className="btn" onClick={submitManual} disabled={!draft.name.trim()}>Add to Library</button>
-                <button className="btn ghost" onClick={()=>{setManualMode(false);setDraft(BLANK_RECIPE);setIngLines(['','','']);}}>Cancel</button>
+                <button className="btn ghost" onClick={()=>{setManualMode(false);setDraft(BLANK_RECIPE);setIngLines(['','','']);setDraftTags([]);}}>Cancel</button>
               </div>
             </div>
           )}
@@ -937,6 +954,8 @@ function EditModal({ c, onSave, onClose }) {
   });
   const [parts, setParts] = useState([...c.parts]);
   const [ings,  setIngs]  = useState([...c.ings]);
+  const [editTags, setEditTags] = useState((c.tags||[]).map(t=>t.toLowerCase()));
+  const toggleEditTag = t => setEditTags(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev,t]);
 
   const updatePart = (i, val) => { const n=[...parts]; n[i]=val; setParts(n); };
   const updateIng  = (i, val) => { const n=[...ings];  n[i]=val; setIngs(n); };
@@ -944,7 +963,7 @@ function EditModal({ c, onSave, onClose }) {
   const removeRow = i => { setParts(p=>p.filter((_,idx)=>idx!==i)); setIngs(g=>g.filter((_,idx)=>idx!==i)); };
 
   const save = () => {
-    onSave({ ...c, ...draft, parts, ings });
+    onSave({ ...c, ...draft, parts, ings, tags: editTags });
     onClose();
   };
 
@@ -971,11 +990,15 @@ function EditModal({ c, onSave, onClose }) {
           ))}
           <button className="btn ghost sm" onClick={addRow} style={{marginBottom:16}}>+ row</button>
           <p className="lbl">Flavor Profile</p>
-          <input className="ainput" value={draft.flavor} onChange={e=>setDraft(d=>({...d,flavor:e.target.value}))} style={{width:'100%',marginBottom:10}} />
+          <textarea className="ainput" value={draft.flavor} onChange={e=>setDraft(d=>({...d,flavor:e.target.value}))} rows={2} style={{width:'100%',marginBottom:10,resize:'none'}} />
           <p className="lbl">Method</p>
           <textarea className="ainput" value={draft.method} onChange={e=>setDraft(d=>({...d,method:e.target.value}))} rows={3} style={{width:'100%',marginBottom:10}} />
           <p className="lbl">Notes</p>
-          <input className="ainput" value={draft.note} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} style={{width:'100%',marginBottom:20}} />
+          <input className="ainput" value={draft.note} onChange={e=>setDraft(d=>({...d,note:e.target.value}))} style={{width:'100%',marginBottom:12}} />
+          <p className="lbl">Tags <span style={{color:'#b8a98a',fontSize:'8px',letterSpacing:'.1em'}}>— tap to select</span></p>
+          <div className="pgrid" style={{marginBottom:16}}>
+            {FLAVORS.map(([f,icon])=><button key={f} className={`chip${editTags.includes(f.toLowerCase())?' on':''}`} onClick={()=>toggleEditTag(f.toLowerCase())}>{icon} {f}</button>)}
+          </div>
           <div style={{display:'flex',gap:10}}>
             <button className="btn" onClick={save}>Save Changes</button>
             <button className="btn ghost" onClick={onClose}>Cancel</button>
@@ -1101,6 +1124,8 @@ function ScanModal({ apiKey, onImport, onClose, onGoSettings }) {
   const [status, setStatus] = useState('idle'); // idle | loading | review | error
   const [result, setResult] = useState(null);
   const [errMsg, setErrMsg] = useState('');
+  const [scanTags, setScanTags] = useState([]);
+  const toggleScanTag = t => setScanTags(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev,t]);
   const fileRef = useRef(null);
 
   const processImage = async (file) => {
@@ -1200,7 +1225,7 @@ If this image does not contain a cocktail recipe, return: {"error": "No recipe f
     if (file) processImage(file);
   };
 
-  const confirmImport = () => { onImport(result); onClose(); };
+  const confirmImport = () => { onImport({...result, tags:scanTags}); onClose(); };
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -1274,9 +1299,13 @@ If this image does not contain a cocktail recipe, return: {"error": "No recipe f
                   {result.note && <><p className="lbl" style={{marginTop:12}}>Notes</p><p className="note">{result.note}</p></>}
                 </div>
               </div>
+              <p className="lbl">Tags <span style={{color:'#b8a98a',fontSize:'8px',letterSpacing:'.1em'}}>— tap to select</span></p>
+              <div className="pgrid" style={{marginBottom:14}}>
+                {FLAVORS.map(([f,icon])=><button key={f} className={`chip${scanTags.includes(f.toLowerCase())?' on':''}`} onClick={()=>toggleScanTag(f.toLowerCase())}>{icon} {f}</button>)}
+              </div>
               <div style={{display:'flex',gap:10}}>
                 <button className="btn" onClick={confirmImport}>Import Recipe</button>
-                <button className="btn ghost" onClick={()=>setStatus('idle')}>Scan Again</button>
+                <button className="btn ghost" onClick={()=>{setStatus('idle');setScanTags([])}}>Scan Again</button>
               </div>
             </div>
           )}
