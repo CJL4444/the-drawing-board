@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!--
+  The Drawing Board
+  A personal bar operating system
+
+  © 2026 Corey Lallo
+  thedrawingboard.netlify.app
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -458,7 +465,7 @@ async function searchExternal(q) {
       const base=/bourbon|rye|whiskey|whisky/.test(s)?'whiskey':/scotch/.test(s)?'whiskey':/\bgin\b/.test(s)?'gin':/vodka/.test(s)?'vodka':/tequila|mezcal/.test(s)?'tequila':/\brum\b/.test(s)?'rum':'other';
       return {id:`ext_${x.idDrink}`,name:x.strDrink,emoji:'🍹',base,tags:[],ings,parts,method:x.strInstructions||'',flavor:`${x.strCategory||'Cocktail'} · ${x.strAlcoholic||''}`,note:`Imported from TheCocktailDB. Glass: ${x.strGlass||'unknown'}.`,isImported:true};
     });
-  } catch { return null; }
+  } catch(e) { return null; }
 }
 
 function toShots(m, ing) {
@@ -516,8 +523,8 @@ function toShots(m, ing) {
 }
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
-const ld = (k,fb) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb; } catch { return fb; } };
-const sv = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} };
+const ld = (k,fb) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb; } catch(e) { return fb; } };
+const sv = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch(e) {} };
 
 // ─── CARD ─────────────────────────────────────────────────────────────────────
 function Card({ c, set, onFav, onMore, onCart, cart, all, onEdit, onDelete, openId, setOpenId, open0=false }) {
@@ -619,7 +626,7 @@ function HomeView({ set, all, cart, onNav, setSurprise }) {
         {[
           ['recipes',   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>,   'Cocktails'],
           ['inventory', <span style={{fontSize:'1.2rem'}}>🗄️</span>, 'Ingredients'],
-          ['discover',  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>,  'Explore'],
+          ['discover',  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>,  'Explore / Tools'],
         ].map(([id,icon,label])=>(
           <button key={id} className="hbtn" onClick={()=>onNav(id)}>
             <span className="hbtn-icon">{icon}</span>
@@ -864,7 +871,7 @@ const FLAVORS = [["Bitter","🍊"],["Citrusy","🍋"],["Sweet","🍬"],["Smoky",
 const BASES   = ["Whiskey / Bourbon","Vodka","Gin","Rum","Tequila","Aperitivo","Scotch","No Preference"];
 const BLANK_RECIPE = { name:'', emoji:'🍹', base:'other', flavor:'', method:'', note:'' };
 
-function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit, apiKey, onScan, onGoSettings }) {
+function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit, onDelete, apiKey, onScan, onGoSettings, owned, setOwned, catalog, setCatalog, setCart }) {
   const [open, setOpen] = useState(null); // null | 'ideas' | 'find'
 
   // Ideas state
@@ -913,6 +920,57 @@ function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit,
   };
 
   const handleTile = which => setOpen(prev => prev===which ? null : which);
+
+  // Manage state
+  const [catalogEdit, setCatalogEdit] = useState(false);
+
+  // Backup: export
+  const doExport = () => {
+    const exportable = all.filter(c => c.isImported || c.isEdited);
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      owned,
+      cart,
+      catalog,
+      customRecipes: exportable,
+      favorites: all.filter(c=>c.fav).map(c=>c.id),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `drawing-board-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Backup: import
+  const [importStatus, setImportStatus] = useState(null);
+  const doImportBackup = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.version) throw new Error('Invalid backup file');
+        if (data.owned)         setOwned(data.owned);
+        if (data.cart)          setCart(data.cart);
+        if (data.catalog)       setCatalog(data.catalog);
+        if (data.customRecipes) data.customRecipes.forEach(c => onImport(c));
+        setImportStatus('success');
+        setTimeout(() => setImportStatus(null), 3000);
+      } catch(e) {
+        setImportStatus('error');
+        setTimeout(() => setImportStatus(null), 3000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const editableRecipes = all.filter(c => c.isImported || c.isEdited);
 
   return (
     <div>
@@ -1076,6 +1134,120 @@ function DiscoverView({ set, all, onFav, onMore, onCart, cart, onImport, onEdit,
           })}
         </div>
       )}
+
+      {/* ── BAR MANAGEMENT STRIP ── */}
+      <div style={{marginTop:40,paddingTop:24,borderTop:'1px solid var(--slate-light)'}}>
+        <p style={{fontFamily:"'DM Mono',monospace",fontSize:'.78rem',fontWeight:400,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--muted)',marginBottom:12}}>🛠 App Tools</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+
+          {/* ⚙️ Manage tile */}
+          <div
+            onClick={()=>handleTile('manage')}
+            style={{
+              background: open==='manage' ? 'rgba(200,134,10,.08)' : 'var(--slate-mid)',
+              border: open==='manage' ? '1px solid var(--amber-dim)' : '1px solid var(--slate-light)',
+              borderRadius:10, padding:'14px 14px 12px', cursor:'pointer',
+              transition:'background .18s,border-color .18s'
+            }}
+          >
+            <div style={{fontSize:'1.3rem',marginBottom:4}}>⚙️</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'1.05rem',fontWeight:400,color:'var(--chalk)',marginBottom:2}}>Bar Management</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:'.7rem',fontWeight:300,color:'var(--muted)',lineHeight:1.4}}>Ingredients, recipes & cart</div>
+          </div>
+
+          {/* 📦 Backup tile */}
+          <div
+            onClick={()=>handleTile('backup')}
+            style={{
+              background: open==='backup' ? 'rgba(200,134,10,.08)' : 'var(--slate-mid)',
+              border: open==='backup' ? '1px solid var(--amber-dim)' : '1px solid var(--slate-light)',
+              borderRadius:10, padding:'14px 14px 12px', cursor:'pointer',
+              transition:'background .18s,border-color .18s'
+            }}
+          >
+            <div style={{fontSize:'1.3rem',marginBottom:4}}>📦</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'1.05rem',fontWeight:400,color:'var(--chalk)',marginBottom:2}}>Backup / Restore</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:'.7rem',fontWeight:300,color:'var(--muted)',lineHeight:1.4}}>Export & restore your data</div>
+          </div>
+        </div>
+
+        {/* ── MANAGE PANEL ── */}
+        {open==='manage' && (
+          <div style={{marginTop:14,background:'rgba(200,134,10,.04)',border:'1px solid var(--amber-dim)',borderRadius:10,padding:'18px 16px'}}>
+
+            {/* Shopping list */}
+            <p className="lbl" style={{marginTop:0}}>Shopping List</p>
+            {cart.length === 0
+              ? <p className="muted-txt" style={{marginBottom:16}}>Your cart is empty.</p>
+              : (
+                <div style={{marginBottom:16}}>
+                  {cart.map(item => (
+                    <div key={item} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid var(--slate-light)'}}>
+                      <span style={{flex:1,fontFamily:"'DM Mono',monospace",fontSize:'.88rem',fontWeight:300,color:'var(--chalk)'}}>{item}</span>
+                      <button className="btn sm" style={{fontSize:'.74rem',padding:'4px 10px'}}
+                        onClick={e=>{e.stopPropagation();setOwned(o=>[...o,item]);setCart(c=>c.filter(x=>x!==item));}}>
+                        ✓ Got it
+                      </button>
+                      <button className="btn ghost sm" style={{padding:'4px 8px',fontSize:'.8rem',color:'#c05050',borderColor:'#5a2020'}}
+                        onClick={e=>{e.stopPropagation();setCart(c=>c.filter(x=>x!==item));}}>✕</button>
+                    </div>
+                  ))}
+                  <button className="btn ghost sm" style={{marginTop:10,fontSize:'.76rem'}} onClick={e=>{e.stopPropagation();setCart([]);}}>Clear List</button>
+                </div>
+              )
+            }
+
+            {/* Edit master ingredient list */}
+            <div style={{borderTop:'1px solid var(--slate-light)',paddingTop:14,marginBottom:16}}>
+              <p className="lbl">Ingredient Catalog</p>
+              <button className="btn ghost sm" onClick={e=>{e.stopPropagation();setCatalogEdit(true);}}>⚙️ Edit Master Ingredient List</button>
+            </div>
+
+            {/* Custom & edited recipes */}
+            <div style={{borderTop:'1px solid var(--slate-light)',paddingTop:14}}>
+              <p className="lbl">Custom & Edited Recipes</p>
+              {editableRecipes.length === 0
+                ? <p className="muted-txt">No custom or edited recipes yet.</p>
+                : editableRecipes.map(c => (
+                    <div key={c.id} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid var(--slate-light)'}}>
+                      <span style={{flex:1,fontFamily:"'DM Mono',monospace",fontSize:'.88rem',fontWeight:300,color:'var(--chalk)'}}>{c.emoji} {c.name}</span>
+                      <button className="btn ghost sm" style={{padding:'4px 8px',fontSize:'.75rem'}}
+                        onClick={e=>{e.stopPropagation();onEdit(c);}}>✏️</button>
+                      {onDelete && <button className="btn ghost sm" style={{padding:'4px 8px',fontSize:'.75rem',color:'#c05050',borderColor:'#5a2020'}}
+                        onClick={e=>{e.stopPropagation();if(window.confirm(`Remove "${c.name}"?`))onDelete(c);}}>✕</button>}
+                    </div>
+                  ))
+              }
+            </div>
+
+            {catalogEdit && <CatalogEditModal catalog={catalog} setCatalog={setCatalog} owned={owned} setOwned={setOwned} onClose={()=>setCatalogEdit(false)} />}
+          </div>
+        )}
+
+        {/* ── BACKUP PANEL ── */}
+        {open==='backup' && (
+          <div style={{marginTop:14,background:'rgba(200,134,10,.04)',border:'1px solid var(--amber-dim)',borderRadius:10,padding:'18px 16px'}}>
+
+            <div style={{marginBottom:20}}>
+              <p className="lbl" style={{marginTop:0}}>Export Backup</p>
+              <p className="muted-txt" style={{marginBottom:10}}>Downloads a JSON file with your inventory, cart, catalog, custom recipes, and favorites.</p>
+              <button className="btn" onClick={e=>{e.stopPropagation();doExport();}}>📥 Download Backup</button>
+            </div>
+
+            <div style={{borderTop:'1px solid var(--slate-light)',paddingTop:16}}>
+              <p className="lbl">Restore from Backup</p>
+              <p className="muted-txt" style={{marginBottom:10}}>Upload a previously exported backup file to restore your data.</p>
+              <label style={{display:'inline-block'}}>
+                <input type="file" accept=".json" style={{display:'none'}} onChange={doImportBackup} />
+                <span className="btn ghost sm" style={{cursor:'pointer'}}>📤 Upload Backup File</span>
+              </label>
+              {importStatus==='success' && <p style={{marginTop:10,fontFamily:"'DM Mono',monospace",fontSize:'.84rem',color:'#6a9a6a'}}>✓ Backup restored successfully.</p>}
+              {importStatus==='error'   && <p style={{marginTop:10,fontFamily:"'DM Mono',monospace",fontSize:'.84rem',color:'#c05050'}}>✕ Could not read backup file.</p>}
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
@@ -1275,6 +1447,13 @@ function SettingsView({ apiKey, setApiKey }) {
         {apiKey && (
           <button className="btn ghost sm" style={{marginTop:12,color:'#c05050',borderColor:'#5a2020'}} onClick={()=>{if(window.confirm('Remove API key?')){setApiKey('');setDraft('');}}}>Remove Key</button>
         )}
+      </div>
+
+      <div style={{marginTop:40,paddingTop:20,borderTop:'1px solid var(--slate-light)',textAlign:'center'}}>
+        <p style={{fontFamily:"'DM Mono',monospace",fontSize:'.72rem',fontWeight:300,color:'var(--muted)',lineHeight:2}}>
+          The Drawing Board<br/>
+          © 2026 Corey Lallo
+        </p>
       </div>
     </div>
   );
@@ -1922,7 +2101,7 @@ function App() {
           {view==='recipes'   && <RecipesView {...shared} surpriseId={surpriseId} onSurpriseSeen={()=>setSurprise(null)} />}
           {view==='settings'  && <SettingsView apiKey={apiKey} setApiKey={setApiKey} />}
           {view==='inventory' && <InventoryView owned={owned} setOwned={setOwned} cart={cart} onCart={onCart} catalog={catalog} setCatalog={setCatalog} />}
-          {view==='discover'  && <DiscoverView {...shared} onImport={onImport} apiKey={apiKey} onScan={()=>setScan(true)} onGoSettings={()=>setView('settings')} />}
+          {view==='discover'  && <DiscoverView {...shared} onImport={onImport} onDelete={onDelete} apiKey={apiKey} onScan={()=>setScan(true)} onGoSettings={()=>setView('settings')} owned={owned} setOwned={setOwned} catalog={catalog} setCatalog={setCatalog} setCart={setCart} />}
         </div>
       </div>
       {moreModal && <MoreModal c={moreModal} all={all} set={set} onFav={onFav} onCart={onCart} cart={cart} onClose={()=>setMore(null)} />}
